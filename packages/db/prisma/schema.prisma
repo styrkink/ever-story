@@ -1,0 +1,147 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  directUrl  = env("DIRECT_URL")
+  extensions = [vector]
+}
+
+
+enum SubscriptionTier {
+  FREE
+  BASIC
+  PREMIUM
+}
+
+enum Region {
+  US
+  EU
+}
+
+enum StoryStatus {
+  QUEUED
+  GENERATING
+  DONE
+  FAILED
+}
+
+model User {
+  id               String            @id @default(uuid())
+  email            String            @unique
+  passwordHash     String?
+  coppaVerifiedAt  DateTime?
+  subscriptionTier SubscriptionTier  @default(FREE)
+  region           Region            @default(US)
+  createdAt        DateTime          @default(now())
+
+  children     Child[]
+  stories      Story[]
+  subscription Subscription?
+  referralsOut Referral[]    @relation("Referrer")
+  referralIn   Referral?     @relation("Referred")
+
+  @@map("users")
+}
+
+model Child {
+  id        String   @id @default(uuid())
+  userId    String
+  name      String
+  birthDate DateTime
+  interests String[]
+  petName   String?
+  petType   String?
+  createdAt DateTime @default(now())
+  
+  // pgvector extension field
+  embedding Unsupported("vector(768)")?
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stories Story[]
+
+  @@index([userId])
+  @@map("children")
+}
+
+model Story {
+  id          String      @id @default(uuid())
+  childId     String
+  userId      String
+  theme       String
+  artStyle    String
+  moral       String
+  ageGroup    String
+  status      StoryStatus @default(QUEUED)
+  manifestUrl String?
+  pdfUrl      String?
+  createdAt   DateTime    @default(now())
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  child         Child          @relation(fields: [childId], references: [id], onDelete: Cascade)
+  pages         StoryPage[]
+  generationJob GenerationJob?
+
+  @@index([userId])
+  @@index([status, createdAt])
+  @@map("stories")
+}
+
+model StoryPage {
+  id              String  @id @default(uuid())
+  storyId         String
+  pageNum         Int
+  text            String
+  illustrationUrl String?
+  audioUrl        String?
+  wordTimestamps  Json?
+
+  story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@index([storyId])
+  @@map("storyPages")
+}
+
+model GenerationJob {
+  id          String    @id @default(uuid())
+  storyId     String    @unique
+  attempts    Int       @default(0)
+  error       String?
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@map("generationJobs")
+}
+
+model Subscription {
+  id                   String           @id @default(uuid())
+  userId               String           @unique
+  tier                 SubscriptionTier
+  stripeSubId          String?
+  currentPeriodEnd     DateTime?
+  storiesUsedThisMonth Int              @default(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("subscriptions")
+}
+
+model Referral {
+  id           String   @id @default(uuid())
+  referrerId   String
+  referredId   String   @unique
+  bonusStories Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  referrer User @relation("Referrer", fields: [referrerId], references: [id], onDelete: Cascade)
+  referred User @relation("Referred", fields: [referredId], references: [id], onDelete: Cascade)
+
+  @@index([referrerId])
+  @@map("referrals")
+}
