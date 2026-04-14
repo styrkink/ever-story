@@ -76,4 +76,25 @@ export const authController: FastifyPluginAsync = async (server: FastifyInstance
       return reply.status(200).send(user);
     }
   );
+
+  server.post(
+    '/api/auth/verify-coppa',
+    { preValidation: [server.authenticate] },
+    async (request, reply) => {
+      const { stripe } = await import('../../config/stripe');
+      
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: 50, // Minimum Stripe charge is typically $0.50 USD
+        currency: 'usd',
+        metadata: {
+          userId: request.user.userId,
+          purpose: 'coppa_verification',
+        },
+      });
+
+      return reply.status(200).send({
+        clientSecret: paymentIntent.client_secret,
+      });
+    }
+  );
 };

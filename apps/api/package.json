@@ -9,14 +9,22 @@
     "lint": "eslint \"src/**/*.ts\""
   },
   "dependencies": {
-    "@fastify/jwt": "^10.0.0",
+    "@fastify/jwt": "^8.0.0",
+    "@fastify/multipart": "^8.0.0",
+    "@fastify/websocket": "^8.0.0",
+    "ai-pipeline": "workspace:*",
     "bcryptjs": "^3.0.3",
+    "bullmq": "^5.29.1",
     "db": "workspace:*",
     "dotenv": "^17.4.2",
     "fastify": "^4.26.2",
-    "fastify-plugin": "^5.1.0",
+    "fastify-plugin": "^4.0.0",
+    "fastify-raw-body": "^4.0.0",
     "ioredis": "^5.10.1",
+    "queue": "workspace:*",
     "shared": "workspace:*",
+    "sharp": "^0.33.5",
+    "stripe": "^22.0.1",
     "zod": "^3.25.76"
   },
   "devDependencies": {

@@ -60,6 +60,9 @@ model Child {
   // pgvector extension field
   embedding Unsupported("vector(768)")?
 
+  // Base64 encrypted vector
+  embeddingVector String?
+
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   stories Story[]
 
