@@ -121,14 +121,18 @@ export const getStory = async (req: FastifyRequest<{ Params: { id: string } }>, 
 export const getStoryStatus = async (req: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
   const story = await req.server.prisma.story.findUnique({
     where: { id: req.params.id },
-    select: { status: true, userId: true },
+    select: { status: true, userId: true, manifestUrl: true, pdfUrl: true },
   });
 
   if (!story || story.userId !== req.user!.userId) {
     throw new AppError('Story not found', 404);
   }
 
-  return { status: story.status };
+  return { 
+    status: story.status,
+    manifestUrl: story.manifestUrl,
+    pdfUrl: story.pdfUrl
+  };
 };
 
 // GET /api/stories

@@ -1,5 +1,5 @@
 import { Worker } from 'bullmq';
-import { connection, QUEUE_NAMES } from 'queue';
+import { connection, QUEUE_NAMES, storyAssemblyQueue } from 'queue';
 import { generateIllustration, ImageGenerationParams } from 'ai-pipeline';
 import { PrismaClient } from 'db';
 
@@ -36,6 +36,19 @@ export const initImageWorker = () => {
           where: { id: pageId },
           data: { illustrationUrl },
         });
+
+        // Check if all images for this story are completed
+        const allPages = await prisma.storyPage.findMany({
+          where: { storyId },
+          select: { illustrationUrl: true },
+        });
+
+        const allDone = allPages.every(p => p.illustrationUrl !== null);
+
+        if (allDone) {
+          console.log(`[ImageWorker] All images generated for storyId: ${storyId}. Dispatching assembly job.`);
+          await storyAssemblyQueue.add('assemble', { storyId });
+        }
 
         console.log(`[ImageWorker] Finished image generation for storyId: ${storyId}, pageNum: ${pageNum}`);
         await job.updateProgress({ stage: 'complete', percent: 100 });
