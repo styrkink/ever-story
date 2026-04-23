@@ -9,3 +9,17 @@ dist
 design
 *.http
 test-text-gen.ts
+
+# Tooling & IDE
+.claude/
+stripe.exe
+
+# Testing
+playwright-report/
+test-results/
+
+# Compiler & Build
+*.tsbuildinfo
+
+# Generated Assets
+apps/web/public/images/generated-*.png
