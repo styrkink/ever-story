@@ -5,6 +5,8 @@ import prismaPlugin from './plugins/prisma';
 import jwtPlugin from './plugins/jwt';
 import fastifyMultipart from '@fastify/multipart';
 import fastifyRawBody from 'fastify-raw-body';
+import fastifyRateLimit from '@fastify/rate-limit';
+import fastifyCors from '@fastify/cors';
 import { env } from './config/env';
 import { authController } from './modules/auth/auth.controller';
 import { webhookController } from './modules/webhooks/webhook.controller';
@@ -18,6 +20,31 @@ const server = Fastify({
 
 // Setup Plugins
 setupErrorHandler(server);
+
+// CORS — allow frontend origins
+server.register(fastifyCors, {
+  origin: [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'https://everstory.app',
+    'https://www.everstory.app',
+  ],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+});
+
+// Rate limiting — relaxed in test/dev, strict in production
+server.register(fastifyRateLimit, {
+  max: env.NODE_ENV === 'production' ? 20 : 1000,
+  timeWindow: '1 minute',
+  keyGenerator: (request) => request.ip,
+  errorResponseBuilder: () => ({
+    statusCode: 429,
+    error: 'Too Many Requests',
+    message: 'Слишком много запросов. Попробуйте позже.',
+  }),
+});
 
 server.register(fastifyRawBody, {
   field: 'rawBody',

@@ -61,8 +61,19 @@ export default fp(async (server) => {
   });
 
   server.decorate('requireCoppa', async (request: FastifyRequest, reply: FastifyReply) => {
-    // This assumes the request already passed "authenticate"
-    if (!request.user || !request.user.coppaVerifiedAt) {
+    // Deliberately query the DB instead of reading request.user.coppaVerifiedAt.
+    // The JWT payload is a snapshot from token-issuance time and would be stale
+    // if COPPA was verified (or revoked) after the token was issued.
+    if (!request.user?.userId) {
+      throw new AppError('Action requires COPPA verification', 403);
+    }
+
+    const user = await server.prisma.user.findUnique({
+      where: { id: request.user.userId },
+      select: { coppaVerifiedAt: true },
+    });
+
+    if (!user?.coppaVerifiedAt) {
       throw new AppError('Action requires COPPA verification', 403);
     }
   });

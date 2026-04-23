@@ -1,16 +1,33 @@
 import { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { AuthService } from './auth.service';
+import { CoppaService } from './coppa.service';
 import { registerSchema, loginSchema, refreshSchema } from './auth.schema';
 import { AppError } from '../../utils/AppError';
 
 export const authController: FastifyPluginAsync = async (server: FastifyInstance) => {
   const authService = new AuthService(server);
 
-  server.post('/api/auth/register', async (request, reply) => {
-    const data = registerSchema.parse(request.body);
-    const tokens = await authService.register(data);
-    return reply.status(201).send(tokens);
-  });
+  server.post(
+    '/api/auth/register',
+    {
+      config: {
+        rateLimit: {
+          max: 20,
+          timeWindow: '1 minute',
+          errorResponseBuilder: () => ({
+            statusCode: 429,
+            error: 'Too Many Requests',
+            message: 'Слишком много запросов. Попробуйте позже.',
+          }),
+        },
+      },
+    },
+    async (request, reply) => {
+      const data = registerSchema.parse(request.body);
+      const tokens = await authService.register(data);
+      return reply.status(201).send(tokens);
+    },
+  );
 
   server.post('/api/auth/login', async (request, reply) => {
     const data = loginSchema.parse(request.body);
@@ -81,20 +98,9 @@ export const authController: FastifyPluginAsync = async (server: FastifyInstance
     '/api/auth/verify-coppa',
     { preValidation: [server.authenticate] },
     async (request, reply) => {
-      const { stripe } = await import('../../config/stripe');
-      
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount: 50, // Minimum Stripe charge is typically $0.50 USD
-        currency: 'usd',
-        metadata: {
-          userId: request.user.userId,
-          purpose: 'coppa_verification',
-        },
-      });
-
-      return reply.status(200).send({
-        clientSecret: paymentIntent.client_secret,
-      });
+      const coppaService = new CoppaService(server);
+      const result = await coppaService.createVerificationIntent(request.user.userId);
+      return reply.status(200).send(result);
     }
   );
 };

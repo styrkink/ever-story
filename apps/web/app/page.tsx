@@ -33,18 +33,18 @@ function Navbar() {
         <Link href="#reviews" className="text-[#BBA8D8] text-[15px] hover:text-white transition-colors">Отзывы</Link>
         <Link href="#faq" className="text-[#BBA8D8] text-[15px] hover:text-white transition-colors">FAQ</Link>
         <div className="w-[1px] h-[20px] bg-[#4A2F6E]" />
-        <button className="px-[20px] py-[9px] rounded-[8px] border border-[#6D3FA8] text-[#C9B0E8] text-[14px] hover:bg-[#6D3FA8]/20 transition-colors">
+        <Link href="/login" className="px-[20px] py-[9px] rounded-[8px] border border-[#6D3FA8] text-[#C9B0E8] text-[14px] hover:bg-[#6D3FA8]/20 transition-colors">
           Войти
-        </button>
-        <button className="px-[20px] py-[9px] rounded-[8px] bg-[#8B5CF6] text-white text-[14px] font-semibold hover:bg-[#7C4DED] transition-colors">
+        </Link>
+        <Link href="/register" className="px-[20px] py-[9px] rounded-[8px] bg-[#8B5CF6] text-white text-[14px] font-semibold hover:bg-[#7C4DED] transition-colors">
           Начать бесплатно
-        </button>
+        </Link>
       </nav>
       {/* Mobile nav */}
       <div className="flex lg:hidden">
-        <button className="px-[16px] py-[8px] rounded-[8px] bg-[#8B5CF6] text-white text-[14px] font-semibold">
+        <Link href="/register" className="px-[16px] py-[8px] rounded-[8px] bg-[#8B5CF6] text-white text-[14px] font-semibold">
           Начать
-        </button>
+        </Link>
       </div>
     </header>
   );
