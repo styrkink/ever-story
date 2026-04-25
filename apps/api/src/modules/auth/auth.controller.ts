@@ -35,6 +35,13 @@ export const authController: FastifyPluginAsync = async (server: FastifyInstance
     return reply.status(200).send(tokens);
   });
 
+  server.post('/api/auth/google', async (request, reply) => {
+    const { googleAuthSchema } = require('./auth.schema');
+    const data = googleAuthSchema.parse(request.body);
+    const tokens = await authService.loginWithGoogle(data.token);
+    return reply.status(200).send(tokens);
+  });
+
   server.post('/api/auth/refresh', async (request, reply) => {
     const data = refreshSchema.parse(request.body);
     const tokens = await authService.refresh(data);

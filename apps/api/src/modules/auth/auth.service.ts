@@ -46,6 +46,40 @@ export class AuthService {
     return this.generateTokens(user);
   }
 
+  async loginWithGoogle(accessToken: string) {
+    let payload;
+    try {
+      const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch user info from Google');
+      }
+      payload = await response.json();
+    } catch (error) {
+      throw new AppError('Invalid Google access token', 401);
+    }
+
+    if (!payload || !payload.email) {
+      throw new AppError('Invalid Google token payload', 401);
+    }
+
+    let user = await this.server.prisma.user.findUnique({
+      where: { email: payload.email },
+    });
+
+    if (!user) {
+      // Create user if they don't exist
+      user = await this.server.prisma.user.create({
+        data: {
+          email: payload.email,
+        },
+      });
+    }
+
+    return this.generateTokens(user);
+  }
+
   async refresh(data: RefreshInput) {
     let decoded: any;
     try {

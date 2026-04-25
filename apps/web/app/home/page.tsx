@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   House, BookOpen, User, Sparkles, Bell, Plus,
-  RefreshCw, ShieldCheck, X, Check,
+  RefreshCw, ShieldCheck, X, Check, UserPlus,
 } from "lucide-react";
 import {
   getChildren, getStories, calcAge,
@@ -141,46 +141,54 @@ export default function HomePage() {
           </div>
         </header>
 
+        {/* Mobile top bar */}
+        <div
+          className="flex lg:hidden items-center justify-between flex-shrink-0 px-4"
+          style={{ height: 60, background: "#080617", borderBottom: "1px solid #1A1050" }}
+        >
+          <span className="text-white font-bold" style={{ fontSize: 16 }}>✨ EverStory</span>
+          <div className="flex items-center gap-2">
+            <button
+              className="flex items-center justify-center rounded-full"
+              style={{ width: 34, height: 34, background: "#1A1050" }}
+            >
+              <Bell size={15} color="#9B8EC4" />
+            </button>
+            <button
+              className="flex items-center gap-[5px] rounded-[17px] px-3 py-2 text-[#0F0A2E] text-[12px] font-bold"
+              style={{ background: "#FFB703" }}
+            >
+              <Sparkles size={12} color="#0F0A2E" />
+              Создать
+            </button>
+          </div>
+        </div>
+
         {/* Scrollable content */}
         <main className="flex-1 overflow-y-auto">
 
-          {/* Mobile header */}
-          <div className="flex lg:hidden items-center justify-between px-5 pt-4 pb-2">
-            <div className="flex flex-col gap-0.5">
-              <span className="text-[#9B8EC4] text-[13px]">{greeting}</span>
-              <span className="text-white text-[24px] font-bold leading-tight">EverStory</span>
-            </div>
-            <button
-              className="flex items-center justify-center rounded-full"
-              style={{ width: 44, height: 44, background: "#2D1B6B" }}
-            >
-              <User size={22} color="#9B8EC4" />
-            </button>
-          </div>
-
-          <div className="px-5 lg:px-10 pb-32 lg:pb-10 flex flex-col gap-6 lg:gap-8 pt-4 lg:pt-9">
+            <div className="px-5 lg:px-10 pb-24 lg:pb-10 flex flex-col gap-6 lg:gap-8 pt-5 lg:pt-9">
 
             {/* ── HERO CARD ── */}
-            <div className="relative overflow-hidden rounded-[24px]" style={{ height: 200 }}>
+            <div className="relative overflow-hidden rounded-[24px] h-[200px] lg:h-[220px]">
               <Image src="/images/generated-1775938412647.png" alt="" fill className="object-cover" priority />
               <div
                 className="absolute inset-0"
                 style={{ background: "linear-gradient(180deg, #3B1FA8 0%, #7B2FFF 50%, #1A1050 100%)", opacity: 0.7 }}
               />
               <div className="absolute flex flex-col gap-2" style={{ left: 20, top: 24 }}>
-                <p className="text-white font-bold leading-snug lg:text-[26px]" style={{ fontSize: 18, maxWidth: 190 }}>
+                <p className="text-white font-bold leading-snug lg:text-[26px]" style={{ fontSize: 20, maxWidth: 300 }}>
                   Создай сказку за 90 секунд ✨
                 </p>
-                <span className="text-[#C4B5FD] text-[13px] lg:text-[15px]">
-                  <span className="lg:hidden">Ребёнок — главный герой</span>
-                  <span className="hidden lg:inline">Твой ребёнок — главный герой. Магия в одно нажатие.</span>
+                <span className="text-[#C4B5FD] text-[12px] lg:text-[15px]" style={{ maxWidth: 290 }}>
+                  Твой ребёнок — главный герой. Магия в одно нажатие.
                 </span>
               </div>
               <button
-                className="absolute flex items-center gap-1.5 rounded-[20px] lg:rounded-[24px] px-[18px] py-[10px] lg:px-[22px] lg:py-[12px] text-[#0F0A2E] text-[13px] lg:text-[14px] font-bold"
+                className="absolute flex items-center gap-2 rounded-[22px] lg:rounded-[24px] px-[18px] py-[10px] lg:px-[22px] lg:py-[12px] text-[#0F0A2E] text-[13px] lg:text-[14px] font-bold"
                 style={{ background: "#FFB703", left: 20, bottom: 24 }}
               >
-                <Sparkles size={16} color="#0F0A2E" />
+                <Sparkles size={13} color="#0F0A2E" />
                 Создать магию
               </button>
             </div>
@@ -188,7 +196,7 @@ export default function HomePage() {
             {/* ── STORIES SECTION ── */}
             <section className="flex flex-col gap-4">
               <div className="flex items-center justify-between">
-                <span className="text-white text-[17px] lg:text-[18px] font-bold">Последние истории</span>
+                <span className="text-white text-[15px] lg:text-[18px] font-bold">Последние истории</span>
                 {!storiesEmpty && !loadingStories && !storiesError && (
                   <span className="text-[#9B8EC4] text-[13px] cursor-pointer hover:text-white transition-colors">
                     <span className="lg:hidden">Все →</span>
@@ -213,22 +221,28 @@ export default function HomePage() {
             {/* ── CHILDREN SECTION ── */}
             <section className="flex flex-col gap-4">
               <div className="flex items-center justify-between">
-                <span className="text-white text-[17px] lg:text-[18px] font-bold">
-                  <span className="lg:hidden">Профиль детей</span>
-                  <span className="hidden lg:inline">Профиль детей</span>
-                </span>
+                <span className="text-white text-[15px] lg:text-[18px] font-bold">Профили детей</span>
                 {coppaRequired ? (
-                  /* Badge shown when COPPA required */
                   <div
-                    className="flex items-center gap-1.5 rounded-[16px] lg:rounded-[20px] px-[10px] py-[5px] lg:px-3 lg:py-1.5"
+                    className="flex items-center gap-[5px] lg:gap-[6px] rounded-[14px] lg:rounded-[20px] px-[10px] py-[5px] lg:px-3 lg:py-1.5"
                     style={{ background: "#1A1050", border: "1px solid #FFB703" }}
                   >
-                    <ShieldCheck size={12} color="#FFB703" className="lg:hidden" />
-                    <ShieldCheck size={13} color="#FFB703" className="hidden lg:block" />
-                    <span className="text-[#FFB703] font-semibold lg:hidden" style={{ fontSize: 10 }}>Верификация</span>
-                    <span className="text-[#FFB703] font-semibold hidden lg:inline" style={{ fontSize: 11 }}>Требуется верификация</span>
+                    <ShieldCheck size={13} color="#FFB703" />
+                    <span className="text-[#FFB703] text-[10px] lg:text-[11px] font-semibold">Требуется верификация</span>
                   </div>
-                ) : !loadingKids && !kidsEmpty ? (
+                ) : kidsEmpty ? (
+                  <div
+                    className="flex items-center gap-[5px] lg:gap-[6px] rounded-[14px] lg:rounded-[20px] px-[10px] py-[5px] lg:px-3 lg:py-1.5"
+                    style={{ background: "#0B2018", border: "1px solid #22C55E" }}
+                  >
+                    <ShieldCheck size={11} color="#22C55E" className="lg:hidden" />
+                    <ShieldCheck size={13} color="#22C55E" className="hidden lg:block" />
+                    <span className="font-semibold text-[10px] lg:text-[11px]" style={{ color: "#22C55E" }}>
+                      <span className="lg:hidden">COPPA подтверждено</span>
+                      <span className="hidden lg:inline">COPPA Подтверждено</span>
+                    </span>
+                  </div>
+                ) : children.length > 0 ? (
                   <button
                     className="flex items-center gap-1.5 rounded-[14px] px-3 py-1.5"
                     style={{ background: "#2D1B6B" }}
@@ -266,17 +280,12 @@ export default function HomePage() {
 
       {/* ── BOTTOM TAB BAR — mobile only ── */}
       <nav
-        className="lg:hidden fixed bottom-0 left-0 right-0 flex items-center justify-center px-[21px] pb-[21px] pt-3"
-        style={{ background: "#0F0A2E" }}
+        className="lg:hidden fixed bottom-0 left-0 right-0 flex items-center justify-around"
+        style={{ height: 72, background: "#080617", borderTop: "1px solid #1A1050" }}
       >
-        <div
-          className="flex w-full rounded-[36px] p-1"
-          style={{ background: "#1A1050", border: "1px solid #2D1B6B" }}
-        >
-          <BottomTab icon={<House size={18} />} label="ГЛАВНАЯ" active />
-          <BottomTab icon={<BookOpen size={18} />} label="ИСТОРИИ" />
-          <BottomTab icon={<User size={18} />} label="ПРОФИЛЬ" />
-        </div>
+        <BottomTab icon={<House size={20} />} label="Главная" active />
+        <BottomTab icon={<BookOpen size={20} />} label="Истории" />
+        <BottomTab icon={<User size={20} />} label="Профиль" />
       </nav>
     </div>
   );
@@ -300,12 +309,9 @@ function NavItem({ icon, label, active }: { icon: React.ReactNode; label: string
 
 function BottomTab({ icon, label, active }: { icon: React.ReactNode; label: string; active?: boolean }) {
   return (
-    <div
-      className="flex-1 flex flex-col items-center justify-center gap-1 rounded-[26px] py-2 cursor-pointer"
-      style={active ? { background: "#7B2FFF" } : {}}
-    >
-      <span style={{ color: active ? "#FFFFFF" : "#9B8EC4" }}>{icon}</span>
-      <span className="font-semibold tracking-[0.5px]" style={{ fontSize: 9, color: active ? "#FFFFFF" : "#9B8EC4" }}>
+    <div className="flex flex-col items-center justify-center gap-1 px-6 py-2 cursor-pointer">
+      <span style={{ color: active ? "#7B2FFF" : "#9B8EC4" }}>{icon}</span>
+      <span className="font-semibold" style={{ fontSize: 10, color: active ? "#7B2FFF" : "#9B8EC4" }}>
         {label}
       </span>
     </div>
@@ -392,27 +398,26 @@ function ChildCard({ child, storyCount, pageCount }: { child: Child; storyCount:
 function StoriesEmpty() {
   return (
     <div
-      className="flex flex-col items-center justify-center rounded-[16px]"
-      style={{
-        background: "#1A1050",
-        border: "1.5px solid #2D1B6B",
-        // mobile 150px, desktop 180px handled via padding
-      }}
+      className="flex flex-col items-center justify-center rounded-[14px] lg:rounded-[16px]"
+      style={{ background: "#1A1050", border: "1.5px solid #2D1B6B" }}
     >
       {/* Mobile */}
-      <div className="flex lg:hidden flex-col items-center justify-center gap-[10px] w-full px-4 pt-4 pb-[22px]">
+      <div className="flex lg:hidden flex-col items-center justify-center gap-[10px] w-full px-4 py-[18px]">
         <div
-          className="flex items-center justify-center rounded-[22px]"
-          style={{ width: 44, height: 44, background: "#2D1B6B" }}
+          className="flex items-center justify-center rounded-[20px]"
+          style={{ width: 40, height: 40, background: "#2D1B6B" }}
         >
-          <BookOpen size={20} color="#7B2FFF" />
+          <BookOpen size={18} color="#7B2FFF" />
         </div>
-        <span className="text-[#9B8EC4] text-[14px] font-semibold">Ещё нет историй</span>
+        <span className="text-[#9B8EC4] text-[13px] font-semibold">Здесь появятся ваши истории</span>
+        <span className="text-[11px] text-center" style={{ color: "#4A3B7A" }}>
+          Создайте первую сказку — это займёт всего 90 секунд
+        </span>
         <button
-          className="flex items-center gap-2 rounded-[20px] px-[18px] py-[10px] text-white text-[13px] font-bold"
-          style={{ background: "linear-gradient(180deg, #7B2FFF 0%, #4F46E5 100%)" }}
+          className="flex items-center gap-[6px] rounded-[18px] px-4 py-[9px] text-white text-[12px] font-bold"
+          style={{ background: "linear-gradient(90deg, #7B2FFF 0%, #4F46E5 100%)" }}
         >
-          <Sparkles size={14} color="#FFFFFF" />
+          <Sparkles size={12} color="#FFFFFF" />
           Создать первую историю
         </button>
       </div>
@@ -442,14 +447,73 @@ function StoriesEmpty() {
 }
 
 function KidsEmpty() {
+  const router = useRouter();
   return (
-    <div
-      className="flex flex-col items-center justify-center gap-3 rounded-[16px] px-4 py-8"
-      style={{ background: "#1A1050", border: "1.5px solid #2D1B6B" }}
-    >
-      <User size={28} color="#7B2FFF" opacity={0.6} />
-      <span className="text-[#9B8EC4] text-[13px]">Добавьте профиль ребёнка, чтобы начать</span>
-    </div>
+    <>
+      {/* Mobile — matches KF0Rl */}
+      <div
+        className="flex lg:hidden flex-col gap-3 rounded-[16px] px-4 py-[18px]"
+        style={{ background: "#1A1050", border: "1.5px solid #1A3A2A" }}
+      >
+        <div className="flex items-center gap-[10px]">
+          <div
+            className="flex-shrink-0 flex items-center justify-center rounded-full"
+            style={{ width: 40, height: 40, background: "linear-gradient(135deg, #22C55E 0%, #16A34A 100%)" }}
+          >
+            <ShieldCheck size={20} color="#FFFFFF" />
+          </div>
+          <div className="flex flex-col gap-[3px]">
+            <span className="text-white font-bold" style={{ fontSize: 14 }}>Верификация пройдена!</span>
+            <span style={{ fontSize: 11, color: "#9B8EC4" }}>Аккаунт успешно верифицирован</span>
+          </div>
+        </div>
+        <p className="text-[12px] leading-relaxed" style={{ color: "#9B8EC4" }}>
+          Теперь вы можете добавить профиль ребёнка и начать создавать персональные сказки.
+        </p>
+        <button
+          className="w-full flex items-center justify-center gap-2 rounded-[22px] py-[11px] text-white text-[13px] font-bold"
+          style={{ background: "linear-gradient(90deg, #7B2FFF 0%, #4F46E5 100%)" }}
+          onClick={() => router.push("/add-child")}
+        >
+          <UserPlus size={14} color="#FFFFFF" />
+          Добавить ребёнка
+        </button>
+      </div>
+
+      {/* Desktop — matches BnBCM: horizontal layout, left=content, right=button */}
+      <div
+        className="hidden lg:flex items-center gap-7 rounded-[20px] px-8 py-7"
+        style={{ background: "#1A1050", border: "1.5px solid #1A3A2A" }}
+      >
+        <div className="flex flex-col gap-3 flex-1 min-w-0">
+          <div className="flex items-center gap-3">
+            <div
+              className="flex-shrink-0 flex items-center justify-center rounded-full"
+              style={{ width: 48, height: 48, background: "linear-gradient(135deg, #22C55E 0%, #16A34A 100%)" }}
+            >
+              <ShieldCheck size={22} color="#FFFFFF" />
+            </div>
+            <div className="flex flex-col gap-[3px]">
+              <span className="text-white font-bold" style={{ fontSize: 17 }}>Верификация пройдена!</span>
+              <span style={{ fontSize: 13, color: "#9B8EC4" }}>Аккаунт успешно верифицирован</span>
+            </div>
+          </div>
+          <p className="text-[13px] leading-relaxed" style={{ color: "#9B8EC4", maxWidth: 540 }}>
+            Теперь вы можете добавить профиль ребёнка и начать создавать персональные сказки.
+          </p>
+        </div>
+        <div className="flex-shrink-0">
+          <button
+            className="flex items-center gap-[10px] rounded-[24px] px-7 py-[14px] text-white font-bold whitespace-nowrap"
+            style={{ fontSize: 15, background: "linear-gradient(90deg, #7B2FFF 0%, #4F46E5 100%)" }}
+            onClick={() => router.push("/add-child")}
+          >
+            <UserPlus size={18} color="#FFFFFF" />
+            Добавить ребёнка
+          </button>
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -459,50 +523,43 @@ function CoppaCard({ onLearnMore }: { onLearnMore?: () => void }) {
     <>
       {/* Mobile */}
       <div
-        className="flex lg:hidden flex-col gap-[14px] rounded-[18px] px-[18px] py-5"
+        className="flex lg:hidden flex-col gap-3 rounded-[16px] p-4"
         style={{ background: "#1A1050", border: "1.5px solid #2D1B6B" }}
       >
         {/* Top row */}
-        <div className="flex items-center gap-[14px]">
+        <div className="flex items-center gap-[10px]">
           <div
-            className="flex-shrink-0 flex items-center justify-center rounded-[22px]"
-            style={{
-              width: 44, height: 44,
-              background: "linear-gradient(135deg, #FFB703 0%, #FF8C00 100%)",
-            }}
+            className="flex-shrink-0 flex items-center justify-center rounded-full"
+            style={{ width: 40, height: 40, background: "linear-gradient(135deg, #FFB703 0%, #FF8C00 100%)" }}
           >
             <ShieldCheck size={20} color="#0F0A2E" />
           </div>
-          <div className="flex flex-col gap-[3px]">
-            <span className="text-white text-[15px] font-bold">Нет профилей детей</span>
-            <span className="text-[#9B8EC4] text-[12px]">Добавьте ребёнка, чтобы начать</span>
-          </div>
+          <span className="text-white font-bold" style={{ fontSize: 14 }}>Нет профилей детей</span>
         </div>
 
         {/* Description */}
-        <p className="text-[12px] leading-relaxed" style={{ color: "#4A3B7A" }}>
-          Для защиты детей требуется верификация родителя (COPPA). Это займёт 2–3 минуты.
+        <p className="text-[12px] leading-relaxed" style={{ color: "#9B8EC4" }}>
+          Добавьте ребёнка, чтобы начать. Для защиты нужна верификация COPPA.
         </p>
 
         {/* Verify button */}
         <button
-          className="w-full flex items-center justify-center gap-[10px] rounded-[22px] py-[14px] text-[#0F0A2E] text-[15px] font-bold"
-          style={{ background: "linear-gradient(180deg, #FFB703 0%, #FF8C00 100%)" }}
+          className="w-full flex items-center justify-center gap-2 rounded-[22px] py-[11px] text-[#0F0A2E] text-[13px] font-bold"
+          style={{ background: "linear-gradient(90deg, #FFB703 0%, #FF8C00 100%)" }}
           onClick={() => router.push("/verify-coppa")}
         >
-          <ShieldCheck size={17} color="#0F0A2E" />
+          <ShieldCheck size={14} color="#0F0A2E" />
           Пройти верификацию
         </button>
 
         {/* Link */}
-        <div className="flex justify-center">
-          <span
-            className="text-[#7B2FFF] text-[12px] font-semibold cursor-pointer hover:underline"
-            onClick={onLearnMore}
-          >
-            Узнать о COPPA →
-          </span>
-        </div>
+        <p
+          className="text-center text-[12px] font-semibold cursor-pointer"
+          style={{ color: "#7B2FFF" }}
+          onClick={onLearnMore}
+        >
+          Узнать о COPPA →
+        </p>
       </div>
 
       {/* Desktop */}
@@ -538,7 +595,7 @@ function CoppaCard({ onLearnMore }: { onLearnMore?: () => void }) {
         <div className="flex flex-col items-center gap-3 flex-shrink-0">
           <button
             className="flex items-center gap-[10px] rounded-[24px] px-7 py-[14px] text-[#0F0A2E] text-[15px] font-bold whitespace-nowrap"
-            style={{ background: "linear-gradient(180deg, #FFB703 0%, #FF8C00 100%)" }}
+            style={{ background: "linear-gradient(90deg, #FFB703 0%, #FF8C00 100%)" }}
             onClick={() => router.push("/verify-coppa")}
           >
             <ShieldCheck size={18} color="#0F0A2E" />

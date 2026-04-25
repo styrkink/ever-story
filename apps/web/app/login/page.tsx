@@ -5,7 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
-import { loginUser, saveTokens } from "@/lib/auth";
+import { useGoogleLogin } from "@react-oauth/google";
+import { loginUser, loginWithGoogle, saveTokens } from "@/lib/auth";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -38,6 +39,25 @@ export default function LoginPage() {
       setLoading(false);
     }
   }
+
+  const handleGoogleLoginClick = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setLoading(true);
+      try {
+        const tokens = await loginWithGoogle(tokenResponse.access_token);
+        saveTokens(tokens);
+        router.push("/home");
+      } catch (err: any) {
+        setErrors({ general: err?.message || "Ошибка входа через Google" });
+      } finally {
+        setLoading(false);
+      }
+    },
+    onError: () => {
+      setErrors({ general: "Вход через Google был отменен или завершился с ошибкой" });
+    }
+  });
+
 
   return (
     <div className="min-h-screen flex font-sans" style={{ background: "#0F0A2E" }}>
@@ -178,7 +198,9 @@ export default function LoginPage() {
           {/* Google */}
           <button
             type="button"
-            className="w-full flex items-center justify-center gap-[10px] rounded-[16px] font-semibold transition-colors hover:bg-gray-50"
+            onClick={() => handleGoogleLoginClick()}
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-[10px] rounded-[16px] font-semibold transition-colors hover:bg-gray-50 disabled:opacity-60"
             style={{
               height: 54,
               background: "#FFFFFF",
@@ -188,7 +210,7 @@ export default function LoginPage() {
             }}
           >
             <GoogleIcon />
-            Войти через Google
+            {loading ? "Загрузка…" : "Войти через Google"}
           </button>
 
           {/* Register link */}
@@ -318,7 +340,9 @@ export default function LoginPage() {
             {/* Google */}
             <button
               type="button"
-              className="w-full flex items-center justify-center gap-[10px] rounded-[14px] font-semibold transition-colors hover:bg-gray-50"
+              onClick={() => handleGoogleLoginClick()}
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-[10px] rounded-[14px] font-semibold transition-colors hover:bg-gray-50 disabled:opacity-60"
               style={{
                 height: 52,
                 background: "#FFFFFF",
@@ -328,7 +352,7 @@ export default function LoginPage() {
               }}
             >
               <GoogleIcon />
-              Войти через Google
+              {loading ? "Загрузка…" : "Войти через Google"}
             </button>
 
             {/* Register link */}

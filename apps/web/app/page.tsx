@@ -25,7 +25,7 @@ function Navbar() {
   return (
     <header className="w-full h-[72px] bg-[#1A0A2E] px-6 lg:px-[80px] flex items-center justify-between sticky top-0 z-50">
       <Link href="/" className="flex items-center gap-2 text-[#FFFFFF] text-[20px] font-bold">
-        <span className="text-[18px]">⊹</span> EverStory
+        <span className="text-[18px]">✨</span> EverStory
       </Link>
       <nav className="hidden lg:flex items-center gap-[32px]">
         <Link href="#examples" className="text-[#BBA8D8] text-[15px] hover:text-white transition-colors">Примеры</Link>
@@ -59,6 +59,7 @@ function Hero() {
           src="/images/generated-1776215336307.png"
           alt="Волшебная сказка"
           fill
+          sizes="100vw"
           className="object-cover object-top"
           priority
         />
@@ -77,12 +78,12 @@ function Hero() {
           Персонализированные истории с вашим ребёнком в главной роли. Укажи имя, интересы — и получи уникальную сказку за 5 минут.
         </p>
         <div className="flex flex-col sm:flex-row gap-[12px]">
-          <button className="px-[24px] py-[14px] bg-[#F59E0B] text-[#1A0A2E] text-[16px] font-bold rounded-[10px] hover:bg-[#e8920a] transition-colors w-full sm:w-auto text-center">
+          <Link href="/register" className="px-[24px] py-[14px] bg-[#F59E0B] text-[#1A0A2E] text-[16px] font-bold rounded-[10px] hover:bg-[#e8920a] transition-colors w-full sm:w-auto text-center block">
             Создать сказку бесплатно
-          </button>
-          <button className="px-[24px] py-[14px] rounded-[10px] border border-white/40 text-white text-[16px] hover:bg-white/5 transition-colors w-full sm:w-auto text-center">
+          </Link>
+          <a href="#examples" className="px-[24px] py-[14px] rounded-[10px] border border-white/40 text-white text-[16px] hover:bg-white/5 transition-colors w-full sm:w-auto text-center block">
             ▶ Посмотреть пример
-          </button>
+          </a>
         </div>
         <div className="flex items-center gap-0 pt-2">
           <div className="flex flex-col gap-[2px] flex-1">
@@ -108,6 +109,7 @@ function Hero() {
           src="/images/generated-1776215336307.png"
           alt="Волшебная сказка"
           fill
+          sizes="50vw"
           className="object-cover object-center"
           priority
         />
@@ -176,7 +178,7 @@ function HowItWorks() {
           </div>
 
           <div className="w-full lg:w-[420px] h-[280px] lg:h-[420px] rounded-[20px] overflow-hidden relative shadow-2xl shadow-[#8B5CF6]/20 flex-shrink-0">
-            <Image src="/images/generated-1776215244182.png" alt="Как создаётся сказка" fill className="object-cover" />
+            <Image src="/images/generated-1776215244182.png" alt="Как создаётся сказка" fill sizes="(max-width: 1024px) 100vw, 420px" className="object-cover" />
           </div>
         </div>
       </div>
@@ -203,7 +205,7 @@ function Examples() {
           {stories.map((s, i) => (
             <div key={i} className="bg-white rounded-[16px] border border-[#E8D5FF] overflow-hidden flex flex-col cursor-pointer hover:shadow-lg hover:shadow-purple-100 transition-shadow">
               <div className="w-full h-[200px] relative">
-                <Image src={s.img} alt={s.title} fill className="object-cover" />
+                <Image src={s.img} alt={s.title} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover" />
               </div>
               <div className="p-[20px] flex flex-col gap-[6px]">
                 <h3 className="text-[#1A0A2E] text-[15px] font-bold leading-[1.4]">{s.title}</h3>
@@ -217,9 +219,9 @@ function Examples() {
           <span className="text-white text-[18px] lg:text-[20px] font-bold text-center sm:text-left">
             🎁 Первые 7 дней — бесплатно!
           </span>
-          <button className="bg-white px-[24px] py-[12px] rounded-[8px] text-[#8B5CF6] text-[15px] font-bold hover:bg-gray-50 transition-colors flex-shrink-0">
+          <Link href="/register" className="bg-white px-[24px] py-[12px] rounded-[8px] text-[#8B5CF6] text-[15px] font-bold hover:bg-gray-50 transition-colors flex-shrink-0 text-center block">
             Попробовать сейчас
-          </button>
+          </Link>
         </div>
       </div>
     </section>
@@ -371,9 +373,9 @@ function Pricing() {
                 </div>
               ))}
             </div>
-            <button className="w-full py-[12px] rounded-[10px] border border-[#8B5CF6] text-[#8B5CF6] text-[15px] font-semibold hover:bg-purple-50 transition-colors mt-2">
+            <Link href="/register" className="w-full py-[12px] rounded-[10px] border border-[#8B5CF6] text-[#8B5CF6] text-[15px] font-semibold hover:bg-purple-50 transition-colors mt-2 text-center block">
               Начать бесплатно
-            </button>
+            </Link>
           </div>
 
           {/* Basic — popular */}
@@ -399,9 +401,9 @@ function Pricing() {
                 </div>
               ))}
             </div>
-            <button className="w-full py-[13px] rounded-[10px] bg-[#F59E0B] text-[#1A0A2E] text-[15px] font-bold hover:bg-[#e8920a] transition-colors mt-2 shadow-lg">
+            <Link href="/register" className="w-full py-[13px] rounded-[10px] bg-[#F59E0B] text-[#1A0A2E] text-[15px] font-bold hover:bg-[#e8920a] transition-colors mt-2 shadow-lg text-center block">
               Попробовать 7 дней бесплатно
-            </button>
+            </Link>
           </div>
 
           {/* Premium */}
@@ -422,9 +424,9 @@ function Pricing() {
                 </div>
               ))}
             </div>
-            <button className="w-full py-[12px] rounded-[10px] border border-[#8B5CF6] text-[#8B5CF6] text-[15px] font-semibold hover:bg-purple-50 transition-colors mt-2">
+            <Link href="/register" className="w-full py-[12px] rounded-[10px] border border-[#8B5CF6] text-[#8B5CF6] text-[15px] font-semibold hover:bg-purple-50 transition-colors mt-2 text-center block">
               Начать с Premium
-            </button>
+            </Link>
           </div>
         </div>
       </div>
@@ -493,13 +495,13 @@ function CTA() {
       <p className="text-[#C9B0E8] text-[16px] leading-[1.6] max-w-[560px] text-center">
         Присоединяйся к 10 000+ семей, которые уже создают волшебные воспоминания вместе с EverStory
       </p>
-      <div className="flex flex-col sm:flex-row items-center gap-[14px] mt-2 w-full sm:w-auto">
-        <button className="px-[32px] py-[15px] bg-[#F59E0B] text-[#1A0A2E] text-[17px] font-bold rounded-[12px] hover:bg-[#e8920a] transition-colors w-full sm:w-auto">
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-[14px] mt-2 w-full sm:w-auto">
+        <Link href="/register" className="px-[32px] py-[15px] bg-[#F59E0B] text-[#1A0A2E] text-[17px] font-bold rounded-[12px] hover:bg-[#e8920a] transition-colors w-full sm:w-auto text-center block">
           Начать бесплатно
-        </button>
-        <button className="px-[32px] py-[15px] border border-white/40 text-white text-[17px] rounded-[12px] hover:bg-white/5 transition-colors w-full sm:w-auto">
+        </Link>
+        <a href="#examples" className="px-[32px] py-[15px] border border-white/40 text-white text-[17px] rounded-[12px] hover:bg-white/5 transition-colors w-full sm:w-auto text-center block">
           Смотреть примеры
-        </button>
+        </a>
       </div>
       <p className="text-[#8B6BAE] text-[13px] text-center">
         Бесплатно · Без кредитной карты · Первая сказка в подарок
@@ -514,7 +516,7 @@ function Footer() {
       <div className="max-w-[1440px] mx-auto px-6 lg:px-[80px] pt-[48px] pb-[32px] flex flex-col lg:flex-row gap-[48px] lg:gap-[80px]">
         <div className="flex flex-col gap-[14px] lg:w-[280px]">
           <span className="text-white text-[18px] font-bold flex items-center gap-2">
-            <span>⊹</span> EverStory
+            <span>✨</span> EverStory
           </span>
           <p className="text-[#6B5B8A] text-[14px] leading-[1.65]">
             Создавай персонализированные сказки для своих детей с помощью ИИ.

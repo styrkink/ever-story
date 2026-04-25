@@ -5,7 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { User, Mail, Lock, Eye, EyeOff } from "lucide-react";
-import { registerUser, saveTokens } from "@/lib/auth";
+import { useGoogleLogin } from "@react-oauth/google";
+import { registerUser, loginWithGoogle, saveTokens } from "@/lib/auth";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -48,6 +49,25 @@ export default function RegisterPage() {
       setLoading(false);
     }
   }
+
+  const handleGoogleLoginClick = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setLoading(true);
+      try {
+        const tokens = await loginWithGoogle(tokenResponse.access_token);
+        saveTokens(tokens);
+        router.push("/home");
+      } catch (err: any) {
+        setErrors({ general: err?.message || "Ошибка регистрации через Google" });
+      } finally {
+        setLoading(false);
+      }
+    },
+    onError: () => {
+      setErrors({ general: "Регистрация через Google была отменена или завершилась с ошибкой" });
+    }
+  });
+
 
   return (
     <div className="min-h-screen flex font-sans">
@@ -193,7 +213,9 @@ export default function RegisterPage() {
           {/* Google button */}
           <button
             type="button"
-            className="w-full h-[54px] rounded-[16px] lg:rounded-[14px] flex items-center justify-center gap-[10px] font-semibold text-[15px] transition-colors hover:bg-gray-50"
+            onClick={() => handleGoogleLoginClick()}
+            disabled={loading}
+            className="w-full h-[54px] rounded-[16px] lg:rounded-[14px] flex items-center justify-center gap-[10px] font-semibold text-[15px] transition-colors hover:bg-gray-50 disabled:opacity-60"
             style={{
               background: "#FFFFFF",
               border: "1.5px solid #E0E0E0",
@@ -201,8 +223,14 @@ export default function RegisterPage() {
             }}
           >
             <GoogleIcon />
-            <span className="hidden sm:inline">Регистрация через Google</span>
-            <span className="sm:hidden">Войти через Google</span>
+            {loading ? (
+              <span>Загрузка…</span>
+            ) : (
+              <>
+                <span className="hidden sm:inline">Регистрация через Google</span>
+                <span className="sm:hidden">Войти через Google</span>
+              </>
+            )}
           </button>
 
           {/* Login link */}
