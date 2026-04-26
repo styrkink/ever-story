@@ -77,3 +77,16 @@ export function clearTokens() {
 export function getAccessToken(): string | null {
   return localStorage.getItem("accessToken");
 }
+
+export async function resendVerificationEmail(email: string): Promise<void> {
+  const res = await fetch(`${API_URL}/api/auth/resend-verification`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message ?? "Failed to resend verification email");
+  }
+}

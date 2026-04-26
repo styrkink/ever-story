@@ -12,11 +12,13 @@ export const QUEUE_NAMES = {
   STORY_IMAGE: 'story-image',
   STORY_AUDIO: 'story-audio',
   STORY_ASSEMBLY: 'story-assembly',
+  EMAIL_TRANSACTIONAL: 'email-transactional',
 } as const;
 
 export const storyGenerationQueue = new Queue(QUEUE_NAMES.STORY_GENERATION, { connection });
 export const storyImageQueue = new Queue(QUEUE_NAMES.STORY_IMAGE, { connection });
 export const storyAudioQueue = new Queue(QUEUE_NAMES.STORY_AUDIO, { connection });
 export const storyAssemblyQueue = new Queue(QUEUE_NAMES.STORY_ASSEMBLY, { connection });
+export const emailTransactionalQueue = new Queue(QUEUE_NAMES.EMAIL_TRANSACTIONAL, { connection });
 
 export { QueueEvents, Worker };

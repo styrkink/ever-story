@@ -38,21 +38,30 @@ export default fp(async (server) => {
   server.decorate('authenticate', async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       await request.jwtVerify();
-      
-      const { jti } = request.user;
-      
-      if (jti) {
-        // Checking token blocklist in Redis by Token ID (jti)
-        const isBlocked = await server.redis.get(`blocklist:${jti}`);
-        if (isBlocked) {
-          throw new AppError('Token is invalid or expired', 401);
-        }
-      } else {
-         throw new AppError('Invalid token format', 401);
+
+      const { jti, userId } = request.user;
+      const iat = (request.user as { iat?: number }).iat;
+
+      if (!jti) {
+        throw new AppError('Invalid token format', 401);
       }
-      
+
+      // Per-token blocklist (logout)
+      const isBlocked = await server.redis.get(`blocklist:${jti}`);
+      if (isBlocked) {
+        throw new AppError('Token is invalid or expired', 401);
+      }
+
+      // Per-user blocklist (password reset / global session invalidation)
+      if (userId && iat) {
+        const userBlockTs = await server.redis.get(`jwt-blocklist:${userId}`);
+        if (userBlockTs && Number(userBlockTs) > iat * 1000) {
+          throw new AppError('Session expired. Please sign in again.', 401);
+        }
+      }
+
       if (request.user.type !== 'access') {
-         throw new AppError('Access token required', 401);
+        throw new AppError('Access token required', 401);
       }
     } catch (err) {
       if (err instanceof AppError) throw err;

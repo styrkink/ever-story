@@ -9,6 +9,7 @@ import fastifyRateLimit from '@fastify/rate-limit';
 import fastifyCors from '@fastify/cors';
 import { env } from './config/env';
 import { authController } from './modules/auth/auth.controller';
+import { passwordResetController } from './modules/auth/passwordReset.controller';
 import { webhookController } from './modules/webhooks/webhook.controller';
 import { childrenController } from './modules/children/children.controller';
 import fastifyWebsocket from '@fastify/websocket';
@@ -16,6 +17,7 @@ import storiesRoutes from './modules/stories/stories.routes';
 import { setupStoriesWebsockets } from './modules/stories/stories.ws';
 const server = Fastify({
   logger: process.env.NODE_ENV !== 'test',
+  maxParamLength: 500,
 });
 
 // Setup Plugins
@@ -66,6 +68,7 @@ server.register(fastifyWebsocket);
 
 // Setup Routes
 server.register(authController);
+server.register(passwordResetController);
 server.register(webhookController);
 server.register(childrenController);
 server.register(storiesRoutes, { prefix: '/api/stories' });

@@ -8,15 +8,16 @@
     "start": "node dist/index.js"
   },
   "dependencies": {
+    "ai-pipeline": "workspace:*",
     "bullmq": "^5.29.1",
+    "db": "workspace:*",
     "dotenv": "^17.4.2",
     "queue": "workspace:*",
-    "ai-pipeline": "workspace:*",
-    "db": "workspace:*"
+    "resend": "^6.12.2"
   },
   "devDependencies": {
+    "@types/node": "^20.0.0",
     "tsx": "^4.11.0",
-    "typescript": "^5.4.5",
-    "@types/node": "^20.0.0"
+    "typescript": "^5.4.5"
   }
 }

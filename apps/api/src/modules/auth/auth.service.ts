@@ -98,6 +98,14 @@ export class AuthService {
       throw new AppError('Invalid refresh token', 401);
     }
 
+    // Per-user blocklist (e.g. password reset invalidates all active sessions)
+    if (decoded.userId && decoded.iat) {
+      const userBlockTs = await this.server.redis.get(`jwt-blocklist:${decoded.userId}`);
+      if (userBlockTs && Number(userBlockTs) > decoded.iat * 1000) {
+        throw new AppError('Session expired. Please sign in again.', 401);
+      }
+    }
+
     const user = await this.server.prisma.user.findUnique({
       where: { id: decoded.userId },
     });
@@ -144,6 +152,7 @@ export class AuthService {
     return {
       accessToken,
       refreshToken,
+      userId: user.id as string,
     };
   }
 }

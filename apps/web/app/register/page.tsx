@@ -37,7 +37,7 @@ export default function RegisterPage() {
     try {
       const tokens = await registerUser(email, password);
       saveTokens(tokens);
-      router.push("/home");
+      router.push(`/verify-email?email=${encodeURIComponent(email)}`);
     } catch (err: any) {
       const msg: string = err?.message ?? "";
       if (msg.toLowerCase().includes("already exists")) {

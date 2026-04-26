@@ -3,6 +3,9 @@ import { AuthService } from './auth.service';
 import { CoppaService } from './coppa.service';
 import { registerSchema, loginSchema, refreshSchema } from './auth.schema';
 import { AppError } from '../../utils/AppError';
+import { enqueueVerificationEmail } from '../../lib/enqueueEmail';
+import { emailVerificationService } from '../../services/emailVerificationService';
+import { env } from '../../config/env';
 
 export const authController: FastifyPluginAsync = async (server: FastifyInstance) => {
   const authService = new AuthService(server);
@@ -25,7 +28,12 @@ export const authController: FastifyPluginAsync = async (server: FastifyInstance
     async (request, reply) => {
       const data = registerSchema.parse(request.body);
       const tokens = await authService.register(data);
-      return reply.status(201).send(tokens);
+
+      // Enqueue verification email (non-blocking — don't fail registration if this errors)
+      enqueueVerificationEmail({ userId: tokens.userId, to: data.email, userName: '', locale: 'ru' })
+        .catch((err) => server.log.error({ action: 'enqueue_verify_email_failed', email: data.email, err }));
+
+      return reply.status(201).send({ accessToken: tokens.accessToken, refreshToken: tokens.refreshToken });
     },
   );
 
@@ -99,6 +107,68 @@ export const authController: FastifyPluginAsync = async (server: FastifyInstance
 
       return reply.status(200).send(user);
     }
+  );
+
+  // Email verification
+  server.get<{ Params: { token: string } }>(
+    '/api/auth/verify-email/:token',
+    async (request, reply) => {
+      const { token } = request.params;
+      const userId = await emailVerificationService.verifyToken(token);
+
+      if (!userId) return reply.redirect(`${env.APP_URL}/auth/verify-failed?reason=invalid`);
+
+      const user = await server.prisma.user.findUnique({
+        where: { id: userId },
+        select: { emailVerifiedAt: true },
+      });
+
+      if (!user) return reply.redirect(`${env.APP_URL}/auth/verify-failed?reason=invalid`);
+
+      if (!user.emailVerifiedAt) {
+        await server.prisma.user.update({
+          where: { id: userId },
+          data: { emailVerifiedAt: new Date() },
+        });
+      }
+
+      server.log.info({ action: 'verify_email_success', userId });
+      return reply.redirect(`${env.APP_URL}/home?verified=1`);
+    },
+  );
+
+  // Resend verification email
+  server.post(
+    '/api/auth/resend-verification',
+    { preValidation: [server.authenticate] },
+    async (request, reply) => {
+      const { userId, email } = request.user;
+
+      const user = await server.prisma.user.findUnique({
+        where: { id: userId },
+        select: { emailVerifiedAt: true, email: true },
+      });
+
+      if (!user) throw new AppError('User not found', 404);
+
+      if (user.emailVerifiedAt) {
+        return reply.status(400).send({ code: 'ALREADY_VERIFIED', message: 'Email is already verified' });
+      }
+
+      const rateLimitKey = `resend-verify:${userId}`;
+      const existing = await server.redis.get(rateLimitKey);
+
+      if (existing) {
+        const ttl = await server.redis.ttl(rateLimitKey);
+        return reply.status(429).send({ code: 'RATE_LIMITED', retryAfter: ttl });
+      }
+
+      await server.redis.set(rateLimitKey, '1', 'EX', 60);
+      await emailVerificationService.invalidatePreviousTokens(userId);
+      await enqueueVerificationEmail({ userId, to: user.email ?? email, userName: '', locale: 'ru' });
+
+      return reply.status(200).send({ message: 'Verification email sent' });
+    },
   );
 
   server.post(

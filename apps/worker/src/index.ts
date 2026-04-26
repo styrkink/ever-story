@@ -15,6 +15,7 @@ console.log('Worker starting...');
 import { initTextWorker } from './text.worker';
 import { initImageWorker } from './image.worker';
 import { initAssemblyWorker } from './assembly.worker';
+import { initEmailWorker } from './email.worker';
 
 console.log('Worker processes starting...');
 
@@ -22,6 +23,7 @@ console.log('Worker processes starting...');
 initTextWorker();
 initImageWorker();
 initAssemblyWorker();
+initEmailWorker();
 
 // Keep the process alive
 process.on('SIGINT', () => {

@@ -30,13 +30,17 @@ enum StoryStatus {
 }
 
 model User {
-  id               String            @id @default(uuid())
-  email            String            @unique
-  passwordHash     String?
-  coppaVerifiedAt  DateTime?
-  subscriptionTier SubscriptionTier  @default(FREE)
-  region           Region            @default(US)
-  createdAt        DateTime          @default(now())
+  id                     String            @id @default(uuid())
+  email                  String            @unique
+  passwordHash           String?
+  emailVerifiedAt        DateTime?
+  coppaVerifiedAt        DateTime?
+  passwordResetToken     String?           @unique
+  passwordResetExpiresAt DateTime?
+  subscriptionTier       SubscriptionTier  @default(FREE)
+  region                 Region            @default(US)
+  createdAt              DateTime          @default(now())
+  updatedAt              DateTime          @default(now()) @updatedAt
 
   children     Child[]
   stories      Story[]

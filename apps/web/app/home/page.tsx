@@ -436,7 +436,7 @@ function StoriesEmpty() {
         </span>
         <button
           className="flex items-center gap-2 rounded-[20px] px-5 py-[10px] text-white text-[13px] font-bold mt-1"
-          style={{ background: "linear-gradient(180deg, #7B2FFF 0%, #4F46E5 100%)" }}
+          style={{ background: "linear-gradient(90deg, #7B2FFF 0%, #4F46E5 100%)" }}
         >
           <Sparkles size={15} color="#FFFFFF" />
           Создать первую историю
