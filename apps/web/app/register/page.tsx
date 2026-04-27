@@ -70,14 +70,14 @@ export default function RegisterPage() {
 
 
   return (
-    <div className="min-h-screen flex font-sans">
+    <div className="h-[100dvh] w-full overflow-hidden flex font-sans">
       {/* ── LEFT PANEL / MOBILE FULL ── */}
       <div
         className="
-          flex-1 flex flex-col justify-between
-          px-6 py-10
-          lg:px-[72px] lg:py-[56px]
-          lg:max-w-[600px] lg:min-h-screen
+          flex-1 flex flex-col justify-center
+          px-6 py-6
+          lg:px-[72px] lg:py-[32px]
+          lg:max-w-[600px] h-full relative z-10
         "
         style={{ background: "#100C2A" }}
       >
@@ -253,14 +253,14 @@ export default function RegisterPage() {
         </div>
 
         {/* Footer — desktop only */}
-        <div className="hidden lg:flex items-center justify-between w-full max-w-[440px] mx-auto lg:mx-0 mt-8">
+        <div className="hidden lg:flex items-center justify-between w-full max-w-[440px] mx-auto lg:mx-0 mt-5 mb-0 lg:mt-auto">
           <span className="text-[#9B8EC4] text-[12px]">© EverStory 2025</span>
         </div>
       </div>
 
       {/* ── RIGHT PANEL — desktop only ── */}
       <div
-        className="hidden lg:block flex-1 relative overflow-hidden"
+        className="hidden lg:block flex-1 relative overflow-hidden h-full"
         style={{
           background:
             "radial-gradient(ellipse 140% 120% at 40% 30%, #3B1278 0%, #0D0820 100%)",
@@ -272,8 +272,8 @@ export default function RegisterPage() {
           style={{
             width: 500,
             height: 500,
-            left: 157,
-            top: 200,
+            left: "15%",
+            top: "calc(50% - 320px)",
             background: "#7B2FFF",
             opacity: 0.15,
             filter: "blur(1px)",
@@ -284,8 +284,8 @@ export default function RegisterPage() {
           style={{
             width: 350,
             height: 350,
-            left: 343,
-            top: 420,
+            left: "35%",
+            top: "calc(50% - 100px)",
             background: "#4F46E5",
             opacity: 0.1,
             filter: "blur(1px)",
@@ -298,8 +298,8 @@ export default function RegisterPage() {
           style={{
             width: 480,
             height: 480,
-            left: 143,
-            top: 210,
+            left: "15%",
+            top: "calc(50% - 300px)",
             borderRadius: 240,
           }}
         >
@@ -323,8 +323,8 @@ export default function RegisterPage() {
         <div
           className="absolute flex flex-col gap-[6px] rounded-[16px] px-[20px] py-[16px]"
           style={{
-            left: 460,
-            top: 130,
+            left: "55%",
+            top: "calc(50% - 340px)",
             background: "#1A1050",
             border: "1px solid #7B2FFF",
           }}
@@ -337,8 +337,8 @@ export default function RegisterPage() {
         <div
           className="absolute flex flex-col gap-[6px] rounded-[16px] px-[18px] py-[14px]"
           style={{
-            left: 130,
-            top: 668,
+            left: "15%",
+            top: "calc(50% + 140px)",
             background: "#1A1050",
             border: "1px solid #FFB703",
           }}
@@ -351,8 +351,8 @@ export default function RegisterPage() {
         <div
           className="absolute flex flex-col gap-[8px] rounded-[16px] px-[20px] py-[16px]"
           style={{
-            left: 420,
-            top: 680,
+            left: "45%",
+            top: "calc(50% + 120px)",
             background: "#1A1050",
             border: "1px solid #2D1B6B",
             maxWidth: 220,

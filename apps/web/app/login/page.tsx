@@ -60,12 +60,12 @@ export default function LoginPage() {
 
 
   return (
-    <div className="min-h-screen flex font-sans" style={{ background: "#0F0A2E" }}>
+    <div className="h-[100dvh] w-full flex font-sans overflow-hidden" style={{ background: "#0F0A2E" }}>
 
       {/* ════════════════════════════════════════
           MOBILE — full screen (hidden on lg+)
       ════════════════════════════════════════ */}
-      <div className="flex lg:hidden flex-col w-full relative overflow-hidden">
+      <div className="flex lg:hidden flex-col w-full h-full relative overflow-hidden">
 
         {/* Radial gradient bg */}
         <div
@@ -164,7 +164,7 @@ export default function LoginPage() {
 
             {/* Forgot */}
             <div className="flex justify-end -mt-2">
-              <Link href="#" className="text-[#7B2FFF] text-[13px] font-semibold hover:underline">
+              <Link href="/forgot-password" className="text-[#7B2FFF] text-[13px] font-semibold hover:underline">
                 Забыли пароль?
               </Link>
             </div>
@@ -226,12 +226,12 @@ export default function LoginPage() {
       {/* ════════════════════════════════════════
           DESKTOP — split layout (hidden below lg)
       ════════════════════════════════════════ */}
-      <div className="hidden lg:flex w-full">
+      <div className="hidden lg:flex w-full h-full">
 
         {/* Left panel */}
         <div
-          className="flex flex-col justify-between flex-shrink-0"
-          style={{ width: 600, background: "#100C2A", padding: "56px 72px" }}
+          className="flex flex-col justify-center flex-shrink-0 relative z-10 h-full"
+          style={{ width: 600, background: "#100C2A", padding: "32px 72px" }}
         >
           <div className="flex flex-col gap-5 flex-1">
             {/* Logo */}
@@ -306,7 +306,7 @@ export default function LoginPage() {
 
               {/* Forgot */}
               <div className="flex justify-end -mt-1">
-                <Link href="#" className="text-[#7B2FFF] text-[13px] font-semibold hover:underline">
+                <Link href="/forgot-password" className="text-[#7B2FFF] text-[13px] font-semibold hover:underline">
                   Забыли пароль?
                 </Link>
               </div>
@@ -365,14 +365,14 @@ export default function LoginPage() {
           </div>
 
           {/* Footer */}
-          <div className="pt-8">
+          <div className="pt-8 mt-auto">
             <span className="text-[12px]" style={{ color: "#4A3B7A" }}>© EverStory 2025</span>
           </div>
         </div>
 
         {/* Right panel */}
         <div
-          className="flex-1 relative overflow-hidden"
+          className="flex-1 relative overflow-hidden h-full"
           style={{
             background:
               "radial-gradient(ellipse 140% 120% at 40% 30%, #3B1278 0%, #0D0820 100%)",
@@ -381,17 +381,17 @@ export default function LoginPage() {
           {/* Glow blobs */}
           <div
             className="absolute rounded-full pointer-events-none"
-            style={{ width: 500, height: 500, left: 157, top: 200, background: "#7B2FFF", opacity: 0.15 }}
+            style={{ width: 500, height: 500, left: "15%", top: "calc(50% - 320px)", background: "#7B2FFF", opacity: 0.15 }}
           />
           <div
             className="absolute rounded-full pointer-events-none"
-            style={{ width: 350, height: 350, left: 343, top: 420, background: "#4F46E5", opacity: 0.1 }}
+            style={{ width: 350, height: 350, left: "35%", top: "calc(50% - 100px)", background: "#4F46E5", opacity: 0.1 }}
           />
 
           {/* Illustration — clipped circle */}
           <div
             className="absolute overflow-hidden"
-            style={{ width: 480, height: 480, left: 143, top: 210, borderRadius: 240 }}
+            style={{ width: 480, height: 480, left: "15%", top: "calc(50% - 300px)", borderRadius: 240 }}
           >
             <Image
               src="/images/generated-1776734537268.png"
@@ -410,7 +410,7 @@ export default function LoginPage() {
           {/* Tag card */}
           <div
             className="absolute flex flex-col gap-[6px] rounded-[16px] px-5 py-4"
-            style={{ left: 460, top: 130, background: "#1A1050", border: "1px solid #7B2FFF" }}
+            style={{ left: "55%", top: "calc(50% - 340px)", background: "#1A1050", border: "1px solid #7B2FFF" }}
           >
             <span className="text-[#C4B5FD] text-[13px] font-semibold">✨ 10 000+ семей</span>
             <span className="text-[#9B8EC4] text-[11px]">уже создают магию</span>
@@ -420,7 +420,7 @@ export default function LoginPage() {
           <div
             className="absolute flex flex-col gap-2 rounded-[16px] px-5 py-4"
             style={{
-              left: 420, top: 680,
+              left: "45%", top: "calc(50% + 120px)",
               background: "#1A1050",
               border: "1px solid #2D1B6B",
               maxWidth: 220,

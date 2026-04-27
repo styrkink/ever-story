@@ -90,3 +90,49 @@ export async function resendVerificationEmail(email: string): Promise<void> {
     throw new Error(data.message ?? "Failed to resend verification email");
   }
 }
+
+export async function forgotPassword(email: string): Promise<void> {
+  const res = await fetch(`${API_URL}/api/auth/forgot-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+
+  if (!res.ok) {
+    // Attempt to extract detailed error code/message if possible, e.g. RATE_LIMITED
+    const data = await res.json().catch(() => ({}));
+    if (data.code === 'RATE_LIMITED' && data.retryAfter) {
+      throw new Error(`Слишком много запросов. Попробуйте снова через ${Math.ceil(data.retryAfter)} сек.`);
+    }
+    throw new Error(data.message ?? "Failed to request password reset");
+  }
+}
+
+export async function validateResetToken(token: string): Promise<{ valid: boolean; email?: string }> {
+  const res = await fetch(`${API_URL}/api/auth/reset-password/${token}/validate`);
+  
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message ?? "Invalid or expired reset token");
+  }
+  
+  const data = await res.json();
+  return data;
+}
+
+export async function resetPassword(
+  token: string,
+  newPassword: string,
+  confirmPassword: string
+): Promise<void> {
+  const res = await fetch(`${API_URL}/api/auth/reset-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, newPassword, confirmPassword }),
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message ?? "Failed to reset password");
+  }
+}
