@@ -1,27 +1,25 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, Wand2, ImageIcon, Heart } from "lucide-react";
 import { useGoogleLogin } from "@react-oauth/google";
 import { loginUser, loginWithGoogle, saveTokens } from "@/lib/auth";
 
 export default function LoginPage() {
   const router = useRouter();
-
-  const [email,        setEmail]        = useState("");
-  const [password,     setPassword]     = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [loading,      setLoading]      = useState(false);
-  const [errors,       setErrors]       = useState<{ email?: string; password?: string; general?: string }>({});
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({});
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const fieldErrors: typeof errors = {};
-    if (!email.trim()) fieldErrors.email    = "Email обязателен";
-    if (!password)     fieldErrors.password = "Пароль обязателен";
+    if (!email.trim()) fieldErrors.email = "Email обязателен";
+    if (!password) fieldErrors.password = "Пароль обязателен";
     if (Object.keys(fieldErrors).length > 0) { setErrors(fieldErrors); return; }
     setErrors({});
     setLoading(true);
@@ -40,7 +38,7 @@ export default function LoginPage() {
     }
   }
 
-  const handleGoogleLoginClick = useGoogleLogin({
+  const handleGoogleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       setLoading(true);
       try {
@@ -53,400 +51,196 @@ export default function LoginPage() {
         setLoading(false);
       }
     },
-    onError: () => {
-      setErrors({ general: "Вход через Google был отменен или завершился с ошибкой" });
-    }
+    onError: () => setErrors({ general: "Вход через Google был отменён или завершился с ошибкой" }),
   });
 
-
   return (
-    <div className="h-[100dvh] w-full flex font-sans overflow-hidden" style={{ background: "#0F0A2E" }}>
+    <div
+      className="min-h-[100dvh] w-full flex items-center justify-center overflow-hidden relative font-sans"
+      style={{
+        background: "radial-gradient(ellipse 160% 120% at 50% 38%, #1A1050 0%, #0F0A2E 60%, #080620 100%)",
+      }}
+    >
+      {/* Orbs — mobile */}
+      <div className="lg:hidden absolute rounded-full pointer-events-none" style={{ width: 280, height: 280, left: -40, top: 30, background: "#7B2FFF", opacity: 0.07 }} />
+      <div className="lg:hidden absolute rounded-full pointer-events-none" style={{ width: 220, height: 220, left: 200, top: 550, background: "#4F46E5", opacity: 0.05 }} />
+      {/* Orbs — desktop */}
+      <div className="hidden lg:block absolute rounded-full pointer-events-none" style={{ width: 600, height: 600, left: 100, top: 50, background: "#7B2FFF", opacity: 0.06 }} />
+      <div className="hidden lg:block absolute rounded-full pointer-events-none" style={{ width: 400, height: 400, left: 900, top: 500, background: "#4F46E5", opacity: 0.05 }} />
 
-      {/* ════════════════════════════════════════
-          MOBILE — full screen (hidden on lg+)
-      ════════════════════════════════════════ */}
-      <div className="flex lg:hidden flex-col w-full h-full relative overflow-hidden">
+      {/* Content */}
+      <div className="relative z-10 flex flex-col items-center w-full px-7 py-10 gap-7 lg:w-[440px] lg:px-0 lg:gap-8">
 
-        {/* Radial gradient bg */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background:
-              "radial-gradient(ellipse 140% 80% at 50% 20%, #2D1178 0%, #0F0A2E 100%)",
-          }}
-        />
+        {/* Logo */}
+        <Link href="/" className="text-white font-bold text-[22px] lg:text-[26px]" style={{ fontFamily: "Inter" }}>
+          ✨ EverStory
+        </Link>
 
-        {/* Decorative stars */}
-        <Star color="#FFB703" size={3} x={30}  y={120} opacity={0.9} />
-        <Star color="#FFFFFF" size={4} x={355} y={80}  opacity={0.7} />
-        <Star color="#C4B5FD" size={2} x={80}  y={200} opacity={0.8} />
-        <Star color="#FFB703" size={3} x={320} y={160} opacity={0.6} />
-        <Star color="#FFFFFF" size={2} x={170} y={60}  opacity={0.9} />
+        {/* Heading */}
+        <div className="flex flex-col items-center gap-2">
+          <h1 className="text-white font-bold text-center text-[28px] lg:text-[34px]" style={{ fontFamily: "Inter" }}>
+            С возвращением!
+          </h1>
+          <p className="text-center text-[13px] lg:text-[15px]" style={{ color: "#9B8EC4", maxWidth: 280 }}>
+            Войди и продолжи создавать магию
+          </p>
+        </div>
 
-        {/* Content */}
-        <div
-          className="relative flex flex-col gap-[18px] w-full px-6 pt-[28px] pb-10"
-          style={{ marginTop: 62 /* below status bar area */ }}
-        >
-          {/* Logo — centered */}
-          <div className="flex justify-center mb-1">
-            <span className="text-white text-[22px] font-bold">✨ EverStory</span>
-          </div>
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="flex flex-col w-full gap-3 lg:gap-3.5">
 
-          {/* Heading — centered */}
-          <div className="flex flex-col items-center gap-2 mb-1">
-            <h1 className="text-white text-[26px] font-bold text-center leading-tight">
-              С возвращением!
-            </h1>
-            <p className="text-[#9B8EC4] text-[14px] text-center" style={{ maxWidth: 280 }}>
-              Войди и продолжи создавать магию
-            </p>
-          </div>
-
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="flex flex-col gap-[18px]">
-            {/* Email */}
-            <div>
-              <div
-                className="flex items-center gap-3 rounded-[16px] px-[18px]"
-                style={{
-                  height: 58,
-                  background: "#1A1050",
-                  border: `2px solid ${errors.email ? "#EF4444" : "#7B2FFF"}`,
-                }}
-              >
-                <Mail size={18} color={errors.email ? "#EF4444" : "#7B2FFF"} className="flex-shrink-0" />
-                <input
-                  type="email"
-                  placeholder="Email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  autoComplete="email"
-                  className="flex-1 bg-transparent outline-none text-white placeholder-[#9B8EC4] font-semibold"
-                  style={{ fontSize: 17 }}
-                />
-              </div>
-              {errors.email && <p role="alert" className="text-red-400 text-[12px] mt-1 px-2">{errors.email}</p>}
-            </div>
-
-            {/* Password */}
-            <div>
-              <div
-                className="relative flex items-center gap-3 rounded-[16px] px-[18px]"
-                style={{
-                  height: 58,
-                  background: "#1A1050",
-                  border: `2px solid ${errors.password ? "#EF4444" : "#7B2FFF"}`,
-                }}
-              >
-                <Lock size={18} color={errors.password ? "#EF4444" : "#7B2FFF"} className="flex-shrink-0" />
-                <input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Пароль"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="current-password"
-                  className="flex-1 bg-transparent outline-none text-white placeholder-[#9B8EC4] font-semibold"
-                  style={{ fontSize: 17 }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((v) => !v)}
-                  className="absolute text-[#9B8EC4] hover:text-white transition-colors"
-                  style={{ right: 18, top: "50%", transform: "translateY(-50%)" }}
-                  aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}
-                >
-                  {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
-                </button>
-              </div>
-              {errors.password && <p role="alert" className="text-red-400 text-[12px] mt-1 px-2">{errors.password}</p>}
-            </div>
-
-            {/* Forgot */}
-            <div className="flex justify-end -mt-2">
-              <Link href="/forgot-password" className="text-[#7B2FFF] text-[13px] font-semibold hover:underline">
-                Забыли пароль?
-              </Link>
-            </div>
-
-            {errors.general && (
-              <p role="alert" className="text-red-400 text-[13px] text-center -mt-2">{errors.general}</p>
-            )}
-
-            {/* CTA */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full flex items-center justify-center rounded-[28px] text-white font-bold disabled:opacity-60 transition-opacity"
+          {/* Email */}
+          <div>
+            <div
+              className="flex items-center gap-2.5 rounded-[14px]"
               style={{
-                padding: "18px 0",
-                fontSize: 17,
-                background: "linear-gradient(90deg, #7B2FFF 0%, #4F46E5 100%)",
+                height: 50,
+                background: "#1A1050",
+                border: `1.5px solid ${errors.email ? "#EF4444" : "#2D1B6B"}`,
+                padding: "0 16px",
               }}
             >
-              {loading ? "Загрузка…" : "Войти"}
-            </button>
-          </form>
+              <Mail size={16} color={errors.email ? "#EF4444" : "#7B2FFF"} className="flex-shrink-0 lg:w-[18px] lg:h-[18px]" />
+              <input
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+                className="flex-1 bg-transparent outline-none text-white placeholder-[#9B8EC4]"
+                style={{ fontSize: 14, fontWeight: 500 }}
+              />
+            </div>
+            {errors.email && <p role="alert" className="text-red-400 text-xs mt-1 px-1">{errors.email}</p>}
+          </div>
+
+          {/* Password */}
+          <div>
+            <div
+              className="relative flex items-center gap-2.5 rounded-[14px]"
+              style={{
+                height: 50,
+                background: "#1A1050",
+                border: `1.5px solid ${errors.password ? "#EF4444" : "#2D1B6B"}`,
+                padding: "0 16px",
+              }}
+            >
+              <Lock size={16} color={errors.password ? "#EF4444" : "#7B2FFF"} className="flex-shrink-0 lg:w-[18px] lg:h-[18px]" />
+              <input
+                type={showPassword ? "text" : "password"}
+                placeholder="Пароль"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+                className="flex-1 bg-transparent outline-none text-white placeholder-[#9B8EC4]"
+                style={{ fontSize: 14, fontWeight: 500 }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                className="absolute text-[#9B8EC4] hover:text-white transition-colors"
+                style={{ right: 16, top: "50%", transform: "translateY(-50%)" }}
+                aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}
+              >
+                {showPassword ? <Eye size={16} /> : <EyeOff size={16} />}
+              </button>
+            </div>
+            {errors.password && <p role="alert" className="text-red-400 text-xs mt-1 px-1">{errors.password}</p>}
+          </div>
+
+          {/* Forgot */}
+          <div className="flex justify-end">
+            <Link
+              href="/forgot-password"
+              className="hover:underline"
+              style={{ color: "#7B2FFF", fontSize: 13, fontWeight: 600 }}
+            >
+              Забыли пароль?
+            </Link>
+          </div>
+
+          {errors.general && (
+            <p role="alert" className="text-red-400 text-sm text-center">{errors.general}</p>
+          )}
+
+          {/* CTA */}
+          <button
+            type="submit"
+            disabled={loading}
+            className="flex items-center justify-center rounded-[25px] text-white font-bold disabled:opacity-60 transition-opacity"
+            style={{
+              height: 50,
+              fontSize: 15,
+              background: "linear-gradient(180deg, #7B2FFF 0%, #4F46E5 100%)",
+            }}
+          >
+            {loading ? "Загрузка…" : "Войти"}
+          </button>
 
           {/* Divider */}
           <div className="flex items-center gap-3">
-            <div className="flex-1 h-px" style={{ background: "#2D1B6B" }} />
-            <span className="text-[#9B8EC4] text-[13px]">или</span>
-            <div className="flex-1 h-px" style={{ background: "#2D1B6B" }} />
+            <div className="flex-1" style={{ height: 1, background: "#2D1B6B" }} />
+            <span style={{ color: "#9B8EC4", fontSize: 12 }}>или</span>
+            <div className="flex-1" style={{ height: 1, background: "#2D1B6B" }} />
           </div>
 
           {/* Google */}
           <button
             type="button"
-            onClick={() => handleGoogleLoginClick()}
+            onClick={() => handleGoogleLogin()}
             disabled={loading}
-            className="w-full flex items-center justify-center gap-[10px] rounded-[16px] font-semibold transition-colors hover:bg-gray-50 disabled:opacity-60"
+            className="flex items-center justify-center gap-2.5 rounded-[14px] font-semibold hover:bg-gray-50 disabled:opacity-60 transition-colors"
             style={{
-              height: 54,
+              height: 50,
               background: "#FFFFFF",
               border: "1.5px solid #E0E0E0",
               color: "#0F0A2E",
-              fontSize: 15,
+              fontSize: 14,
             }}
           >
             <GoogleIcon />
             {loading ? "Загрузка…" : "Войти через Google"}
           </button>
+        </form>
 
-          {/* Register link */}
-          <div className="flex items-center justify-center gap-[6px]">
-            <span className="text-[#9B8EC4] text-[14px]">Нет аккаунта?</span>
-            <Link href="/register" className="text-[#7B2FFF] text-[14px] font-bold hover:underline">
-              Создать
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      {/* ════════════════════════════════════════
-          DESKTOP — split layout (hidden below lg)
-      ════════════════════════════════════════ */}
-      <div className="hidden lg:flex w-full h-full">
-
-        {/* Left panel */}
-        <div
-          className="flex flex-col justify-center flex-shrink-0 relative z-10 h-full"
-          style={{ width: 600, background: "#100C2A", padding: "32px 72px" }}
-        >
-          <div className="flex flex-col gap-5 flex-1">
-            {/* Logo */}
-            <Link href="/" className="text-white font-bold mb-1" style={{ fontSize: 22 }}>
-              ✨ EverStory
-            </Link>
-
-            {/* Heading */}
-            <div className="flex flex-col gap-2 mb-1">
-              <h1 className="text-white font-bold" style={{ fontSize: 32 }}>С возвращением!</h1>
-              <p className="text-[#9B8EC4]" style={{ fontSize: 15 }}>Войди и продолжи создавать магию</p>
-            </div>
-
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-              {/* Email */}
-              <div>
-                <div
-                  className="flex items-center gap-3 rounded-[14px] px-[18px]"
-                  style={{
-                    height: 56,
-                    background: "#1A1050",
-                    border: `2px solid ${errors.email ? "#EF4444" : "#7B2FFF"}`,
-                  }}
-                >
-                  <Mail size={18} color={errors.email ? "#EF4444" : "#7B2FFF"} className="flex-shrink-0" />
-                  <input
-                    type="email"
-                    placeholder="Email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    autoComplete="email"
-                    className="flex-1 bg-transparent outline-none text-white placeholder-[#9B8EC4]"
-                    style={{ fontSize: 15, fontWeight: 500 }}
-                  />
-                </div>
-                {errors.email && <p role="alert" className="text-red-400 text-[12px] mt-1 px-1">{errors.email}</p>}
-              </div>
-
-              {/* Password */}
-              <div>
-                <div
-                  className="relative flex items-center gap-3 rounded-[14px] px-[18px]"
-                  style={{
-                    height: 56,
-                    background: "#1A1050",
-                    border: `2px solid ${errors.password ? "#EF4444" : "#7B2FFF"}`,
-                  }}
-                >
-                  <Lock size={18} color={errors.password ? "#EF4444" : "#7B2FFF"} className="flex-shrink-0" />
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Пароль"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    autoComplete="current-password"
-                    className="flex-1 bg-transparent outline-none text-white placeholder-[#9B8EC4]"
-                    style={{ fontSize: 15, fontWeight: 500 }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((v) => !v)}
-                    className="absolute text-[#9B8EC4] hover:text-white transition-colors"
-                    style={{ right: 18, top: "50%", transform: "translateY(-50%)" }}
-                    aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}
-                  >
-                    {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
-                  </button>
-                </div>
-                {errors.password && <p role="alert" className="text-red-400 text-[12px] mt-1 px-1">{errors.password}</p>}
-              </div>
-
-              {/* Forgot */}
-              <div className="flex justify-end -mt-1">
-                <Link href="/forgot-password" className="text-[#7B2FFF] text-[13px] font-semibold hover:underline">
-                  Забыли пароль?
-                </Link>
-              </div>
-
-              {errors.general && (
-                <p role="alert" className="text-red-400 text-[13px] text-center -mt-2">{errors.general}</p>
-              )}
-
-              {/* CTA */}
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full flex items-center justify-center rounded-[28px] text-white font-bold disabled:opacity-60 transition-opacity"
-                style={{
-                  height: 56,
-                  fontSize: 16,
-                  background: "linear-gradient(90deg, #7B2FFF 0%, #4F46E5 100%)",
-                }}
-              >
-                {loading ? "Загрузка…" : "Войти"}
-              </button>
-            </form>
-
-            {/* Divider */}
-            <div className="flex items-center gap-3">
-              <div className="flex-1 h-px" style={{ background: "#2D1B6B" }} />
-              <span className="text-[#9B8EC4] text-[13px]">или</span>
-              <div className="flex-1 h-px" style={{ background: "#2D1B6B" }} />
-            </div>
-
-            {/* Google */}
-            <button
-              type="button"
-              onClick={() => handleGoogleLoginClick()}
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-[10px] rounded-[14px] font-semibold transition-colors hover:bg-gray-50 disabled:opacity-60"
-              style={{
-                height: 52,
-                background: "#FFFFFF",
-                border: "1.5px solid #E0E0E0",
-                color: "#0F0A2E",
-                fontSize: 15,
-              }}
-            >
-              <GoogleIcon />
-              {loading ? "Загрузка…" : "Войти через Google"}
-            </button>
-
-            {/* Register link */}
-            <div className="flex items-center justify-center gap-[6px]">
-              <span className="text-[#9B8EC4] text-[14px]">Нет аккаунта?</span>
-              <Link href="/register" className="text-[#7B2FFF] text-[14px] font-bold hover:underline">
-                Создать
-              </Link>
-            </div>
-          </div>
-
-          {/* Footer */}
-          <div className="pt-8 mt-auto">
-            <span className="text-[12px]" style={{ color: "#4A3B7A" }}>© EverStory 2025</span>
-          </div>
+        {/* Register link */}
+        <div className="flex items-center justify-center gap-1.5">
+          <span style={{ color: "#9B8EC4", fontSize: 13 }}>Нет аккаунта?</span>
+          <Link href="/register" className="hover:underline" style={{ color: "#7B2FFF", fontSize: 13, fontWeight: 700 }}>
+            Создать
+          </Link>
         </div>
 
-        {/* Right panel */}
-        <div
-          className="flex-1 relative overflow-hidden h-full"
-          style={{
-            background:
-              "radial-gradient(ellipse 140% 120% at 40% 30%, #3B1278 0%, #0D0820 100%)",
-          }}
-        >
-          {/* Glow blobs */}
-          <div
-            className="absolute rounded-full pointer-events-none"
-            style={{ width: 500, height: 500, left: "15%", top: "calc(50% - 320px)", background: "#7B2FFF", opacity: 0.15 }}
-          />
-          <div
-            className="absolute rounded-full pointer-events-none"
-            style={{ width: 350, height: 350, left: "35%", top: "calc(50% - 100px)", background: "#4F46E5", opacity: 0.1 }}
-          />
-
-          {/* Illustration — clipped circle */}
-          <div
-            className="absolute overflow-hidden"
-            style={{ width: 480, height: 480, left: "15%", top: "calc(50% - 300px)", borderRadius: 240 }}
-          >
-            <Image
-              src="/images/generated-1776734537268.png"
-              alt="Иллюстрация"
-              fill
-              className="object-cover"
-              priority
-            />
-          </div>
-
-          {/* Decorative stars */}
-          <Star color="#FFB703" size={4} x={60}  y={80}  opacity={0.9} />
-          <Star color="#FFFFFF" size={3} x={550} y={60}  opacity={0.7} />
-          <Star color="#FFFFFF" size={2} x={350} y={40}  opacity={0.9} />
-
-          {/* Tag card */}
-          <div
-            className="absolute flex flex-col gap-[6px] rounded-[16px] px-5 py-4"
-            style={{ left: "55%", top: "calc(50% - 340px)", background: "#1A1050", border: "1px solid #7B2FFF" }}
-          >
-            <span className="text-[#C4B5FD] text-[13px] font-semibold">✨ 10 000+ семей</span>
-            <span className="text-[#9B8EC4] text-[11px]">уже создают магию</span>
-          </div>
-
-          {/* Quote card */}
-          <div
-            className="absolute flex flex-col gap-2 rounded-[16px] px-5 py-4"
-            style={{
-              left: "45%", top: "calc(50% + 120px)",
-              background: "#1A1050",
-              border: "1px solid #2D1B6B",
-              maxWidth: 220,
-            }}
-          >
-            <span className="text-white text-[13px] font-semibold leading-snug">
-              «Мой сын в восторге!»
-            </span>
-            <span className="text-[#9B8EC4] text-[11px]">— Анна, мама 5-летнего Димы</span>
-          </div>
+        {/* Badges */}
+        <div className="flex items-center justify-center gap-3 lg:gap-6">
+          <Badge icon={<Wand2 size={14} color="#FFB703" />} mobileLabel="Сюжеты" desktopLabel="Уникальные сюжеты" />
+          <Badge icon={<ImageIcon size={14} color="#FFB703" />} mobileLabel="Иллюстрации" desktopLabel="Красивые иллюстрации" />
+          <Badge icon={<Heart size={14} color="#FFB703" />} mobileLabel="Воспоминания" desktopLabel="Семейные воспоминания" />
         </div>
+
       </div>
     </div>
   );
 }
 
-function Star({
-  color, size, x, y, opacity,
+function Badge({
+  icon,
+  label,
+  mobileLabel,
+  desktopLabel,
 }: {
-  color: string; size: number; x: number; y: number; opacity: number;
+  icon: React.ReactNode;
+  label?: string;
+  mobileLabel?: string;
+  desktopLabel?: string;
 }) {
   return (
-    <div
-      className="absolute rounded-full pointer-events-none"
-      style={{ width: size, height: size, left: x, top: y, background: color, opacity }}
-    />
+    <div className="flex items-center gap-1.5">
+      {icon}
+      {label && <span className="whitespace-nowrap" style={{ color: "#9B8EC4", fontSize: 11, fontWeight: 500 }}>{label}</span>}
+      {mobileLabel && <span className="lg:hidden whitespace-nowrap" style={{ color: "#9B8EC4", fontSize: 10, fontWeight: 500 }}>{mobileLabel}</span>}
+      {desktopLabel && <span className="hidden lg:inline whitespace-nowrap" style={{ color: "#9B8EC4", fontSize: 12, fontWeight: 500 }}>{desktopLabel}</span>}
+    </div>
   );
 }
 
