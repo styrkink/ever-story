@@ -1,9 +1,18 @@
 import { FastifyInstance, FastifyPluginAsync } from 'fastify';
-import { createChildSchema, updateChildSchema, childParamsSchema } from './children.schema';
-import { AppError } from '../../utils/AppError';
 import sharp from 'sharp';
-import { encrypt } from '../../utils/crypto';
+import { AppError } from '../../utils/AppError';
+import { encrypt, decrypt } from '../../utils/crypto';
 import { FaceService } from '../../services/face.service';
+import { extractS3Key, deleteS3Objects } from '../../utils/s3';
+import {
+  createChildSchema,
+  updateChildSchema,
+  step1Schema,
+  step2Schema,
+  step3Schema,
+  patchQuerySchema,
+  childParamsSchema,
+} from './children.schema';
 
 const TIER_LIMITS: Record<string, number> = {
   FREE: 1,
@@ -11,179 +20,288 @@ const TIER_LIMITS: Record<string, number> = {
   PREMIUM: 5,
 };
 
+/** Decrypt specialNotesEncrypted and expose as specialNotes in the API response. */
+function toApiResponse(child: Record<string, unknown>) {
+  const { specialNotesEncrypted, embeddingVector, photoEmbedding, ...rest } = child as {
+    specialNotesEncrypted: string | null;
+    embeddingVector: string | null;
+    photoEmbedding: unknown;
+    [key: string]: unknown;
+  };
+  return {
+    ...rest,
+    specialNotes: specialNotesEncrypted ? decrypt(specialNotesEncrypted) : null,
+    hasEmbedding: !!embeddingVector,
+  };
+}
+
 export const childrenController: FastifyPluginAsync = async (server: FastifyInstance) => {
-  // Apply both authenticate and requireCoppa middleware to all routes in this controller
   server.addHook('preValidation', server.authenticate);
   server.addHook('preValidation', server.requireCoppa);
 
+  // ── GET /api/children ────────────────────────────────────────────────────
   server.get('/api/children', async (request, reply) => {
     const children = await server.prisma.child.findMany({
       where: { userId: request.user.userId },
       orderBy: { createdAt: 'asc' },
     });
-    return reply.status(200).send(children);
+    return reply.status(200).send(children.map(toApiResponse));
   });
 
+  // ── POST /api/children ───────────────────────────────────────────────────
   server.post('/api/children', async (request, reply) => {
     const data = createChildSchema.parse(request.body);
 
     const userWithChildren = await server.prisma.user.findUnique({
       where: { id: request.user.userId },
-      include: {
-        _count: {
-          select: { children: true },
-        },
-      },
+      include: { _count: { select: { children: true } } },
     });
 
-    if (!userWithChildren) {
-      throw new AppError('User not found', 404);
-    }
+    if (!userWithChildren) throw new AppError('User not found', 404);
 
-    const { subscriptionTier, _count } = userWithChildren;
-    const currentLimit = TIER_LIMITS[subscriptionTier] || 1;
-
-    if (_count.children >= currentLimit) {
+    const limit = TIER_LIMITS[userWithChildren.subscriptionTier] ?? 1;
+    if (userWithChildren._count.children >= limit) {
       throw new AppError('Profile limit reached for current subscription tier.', 402);
     }
 
+    const { specialNotes, ...rest } = data;
     const newChild = await server.prisma.child.create({
       data: {
-        ...data,
+        ...rest,
+        specialNotesEncrypted: specialNotes ? encrypt(specialNotes) : null,
         userId: request.user.userId,
       },
     });
 
-    return reply.status(201).send(newChild);
+    return reply.status(201).send(toApiResponse(newChild as unknown as Record<string, unknown>));
   });
 
+  // ── PUT /api/children/:id ─────────────────────────────────────────────────
   server.put('/api/children/:id', async (request, reply) => {
     const { id } = childParamsSchema.parse(request.params);
     const data = updateChildSchema.parse(request.body);
 
-    // Verify ownership before updating
-    const existingChild = await server.prisma.child.findFirst({
+    const existing = await server.prisma.child.findFirst({
       where: { id, userId: request.user.userId },
     });
+    if (!existing) throw new AppError('Child profile not found or unauthorized', 404);
 
-    if (!existingChild) {
-      throw new AppError('Child profile not found or unauthorized', 404);
-    }
-
-    const updatedChild = await server.prisma.child.update({
+    const { specialNotes, ...rest } = data;
+    const updated = await server.prisma.child.update({
       where: { id },
-      data,
+      data: {
+        ...rest,
+        specialNotesEncrypted: specialNotes !== undefined
+          ? (specialNotes ? encrypt(specialNotes) : null)
+          : undefined,
+      },
     });
 
-    return reply.status(200).send(updatedChild);
+    return reply.status(200).send(toApiResponse(updated as unknown as Record<string, unknown>));
   });
 
+  // ── PATCH /api/children/:id ───────────────────────────────────────────────
+  server.patch('/api/children/:id', async (request, reply) => {
+    const { id } = childParamsSchema.parse(request.params);
+    const { step } = patchQuerySchema.parse(request.query);
+
+    const existing = await server.prisma.child.findFirst({
+      where: { id, userId: request.user.userId },
+    });
+    if (!existing) throw new AppError('Child profile not found or unauthorized', 404);
+
+    let updateData: Record<string, unknown>;
+
+    if (step === '1') {
+      updateData = step1Schema.parse(request.body);
+    } else if (step === '2') {
+      updateData = step2Schema.parse(request.body);
+    } else {
+      const { specialNotes, ...appearance } = step3Schema.parse(request.body);
+      updateData = {
+        ...appearance,
+        specialNotesEncrypted: specialNotes !== undefined
+          ? (specialNotes ? encrypt(specialNotes) : null)
+          : undefined,
+      };
+    }
+
+    const updated = await server.prisma.child.update({
+      where: { id },
+      data: updateData,
+    });
+
+    return reply.status(200).send(toApiResponse(updated as unknown as Record<string, unknown>));
+  });
+
+  // ── DELETE /api/children/:id ──────────────────────────────────────────────
   server.delete('/api/children/:id', async (request, reply) => {
     const { id } = childParamsSchema.parse(request.params);
 
-    // Verify ownership
-    const existingChild = await server.prisma.child.findFirst({
+    const existing = await server.prisma.child.findFirst({
       where: { id, userId: request.user.userId },
+      include: {
+        stories: {
+          select: {
+            manifestUrl: true,
+            pdfUrl: true,
+            pages: { select: { illustrationUrl: true } },
+          },
+        },
+      },
     });
+    if (!existing) throw new AppError('Child profile not found or unauthorized', 404);
 
-    if (!existingChild) {
-      throw new AppError('Child profile not found or unauthorized', 404);
+    // Collect all S3 keys to delete
+    const s3Keys: string[] = [];
+    for (const story of existing.stories) {
+      if (story.manifestUrl) {
+        const key = extractS3Key(story.manifestUrl);
+        if (key) s3Keys.push(key);
+      }
+      if (story.pdfUrl) {
+        const key = extractS3Key(story.pdfUrl);
+        if (key) s3Keys.push(key);
+      }
+      for (const page of story.pages) {
+        if (page.illustrationUrl) {
+          const key = extractS3Key(page.illustrationUrl);
+          if (key) s3Keys.push(key);
+        }
+      }
     }
 
-    // Prisma Schema has onDelete: Cascade for stories etc.,
-    // so deleting the child handles related records.
-    await server.prisma.child.delete({
+    // Clear embedding synchronously before cascade delete (COPPA compliance)
+    await server.prisma.child.update({
       where: { id },
+      data: { embeddingVector: null },
     });
+    await server.prisma.$executeRaw`
+      UPDATE "children" SET "photoEmbedding" = NULL WHERE id = ${id}
+    `;
 
-    return reply.status(200).send({ message: 'Child profile deleted successfully' });
+    // Cascade delete — removes stories, pages, generationJobs via Prisma schema
+    await server.prisma.child.delete({ where: { id } });
+
+    // Fire S3 cleanup in parallel (non-blocking — cascade already removed DB records)
+    deleteS3Objects(s3Keys).catch((err) =>
+      console.error('[children] S3 cleanup error after child delete:', err)
+    );
+
+    return reply.status(204).send();
   });
 
+  // ── POST /api/children/:id/photo ──────────────────────────────────────────
   server.post('/api/children/:id/photo', async (request, reply) => {
     const { id } = childParamsSchema.parse(request.params);
 
-    // Verify ownership
-    const existingChild = await server.prisma.child.findFirst({
+    // COPPA: must have verified parental consent before processing biometrics
+    const user = await server.prisma.user.findUnique({
+      where: { id: request.user.userId },
+      select: { coppaVerifiedAt: true },
+    });
+    if (!user?.coppaVerifiedAt) {
+      throw new AppError('Parental consent verification required before uploading photos', 403);
+    }
+
+    const existing = await server.prisma.child.findFirst({
       where: { id, userId: request.user.userId },
     });
+    if (!existing) throw new AppError('Child profile not found or unauthorized', 404);
 
-    if (!existingChild) {
-      throw new AppError('Child profile not found or unauthorized', 404);
-    }
-
-    let data;
+    let fileData;
     try {
-      data = await request.file();
-    } catch(err) {
+      fileData = await request.file();
+    } catch {
       throw new AppError('Error processing file upload', 400);
     }
+    if (!fileData) throw new AppError('No file uploaded', 400);
 
-    if (!data) {
-      throw new AppError('No file uploaded', 400);
+    if (!['image/jpeg', 'image/png'].includes(fileData.mimetype)) {
+      throw new AppError('Unsupported file type. Use JPEG or PNG', 400);
     }
 
-    // Check mimetype
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(data.mimetype)) {
-      throw new AppError('Unsupported file type. Use JPG, PNG or WEBP', 400);
+    const buffer = await fileData.toBuffer();
+
+    if (buffer.length > 10 * 1024 * 1024) {
+      throw new AppError('File too large. Maximum size is 10MB', 400);
     }
 
-    const buffer = await data.toBuffer();
-
-    // Validate using sharp and remove EXIF
-    let metadata;
+    // Strip EXIF and validate dimensions
+    let metadata: sharp.Metadata;
     try {
       metadata = await sharp(buffer).metadata();
-    } catch (e) {
+    } catch {
       throw new AppError('Invalid image data', 400);
     }
 
-    if (!metadata.width || !metadata.height || metadata.width < 200 || metadata.height < 200) {
-      throw new AppError('Image too small. Minimum size is 200x200px', 422);
+    if (!metadata.width || !metadata.height || metadata.width < 480 || metadata.height < 480) {
+      throw new AppError('Image too small. Minimum size is 480×480px', 422);
     }
 
-    // Strip EXIF
-    const processedBuffer = await sharp(buffer)
-      // sharp strips EXIF by default
-      .toBuffer();
-
+    // sharp strips EXIF by default when converting
+    const processedBuffer = await sharp(buffer).toBuffer();
     const base64Image = processedBuffer.toString('base64');
 
-    // Call face-service
     const faceResult = await FaceService.extractEmbedding(base64Image);
 
     if (faceResult.qualityScore < 0.7) {
-      // 422 Unprocessable Entity
-      throw new AppError('Image quality is too low or face not clearly visible. Please upload a clear photo with good lighting.', 422);
+      return reply.status(422).send({
+        error: 'FACE_QUALITY_LOW',
+        score: faceResult.qualityScore,
+        hint: 'Попробуйте фото при хорошем освещении, лицо анфас',
+      });
     }
 
-    // Encrypt the embedding using AES-256
-    const embeddingStr = JSON.stringify(faceResult.embedding);
-    const encryptedEmbedding = encrypt(embeddingStr);
+    const encryptedEmbedding = encrypt(JSON.stringify(faceResult.embedding));
 
-    // Save to DB
     await server.prisma.child.update({
       where: { id },
       data: { embeddingVector: encryptedEmbedding },
     });
 
-    return reply.status(200).send({ message: 'Photo processed successfully' });
+    // Store float array in pgvector column
+    const vectorStr = `[${faceResult.embedding.join(',')}]`;
+    await server.prisma.$executeRaw`
+      UPDATE "children" SET "photoEmbedding" = ${vectorStr}::vector(512) WHERE id = ${id}
+    `;
+
+    await server.prisma.auditLog.create({
+      data: {
+        userId: request.user.userId,
+        action: 'PHOTO_UPLOAD',
+        entityId: id,
+        metadata: { qualityScore: faceResult.qualityScore },
+      },
+    });
+
+    return reply.status(200).send({ success: true, qualityScore: faceResult.qualityScore });
   });
 
+  // ── DELETE /api/children/:id/photo ────────────────────────────────────────
   server.delete('/api/children/:id/photo', async (request, reply) => {
     const { id } = childParamsSchema.parse(request.params);
 
-    // Verify ownership
-    const existingChild = await server.prisma.child.findFirst({
+    const existing = await server.prisma.child.findFirst({
       where: { id, userId: request.user.userId },
     });
+    if (!existing) throw new AppError('Child profile not found or unauthorized', 404);
 
-    if (!existingChild) {
-      throw new AppError('Child profile not found or unauthorized', 404);
-    }
-
+    // Synchronous embedding deletion (COPPA compliance)
     await server.prisma.child.update({
       where: { id },
       data: { embeddingVector: null },
+    });
+    await server.prisma.$executeRaw`
+      UPDATE "children" SET "photoEmbedding" = NULL WHERE id = ${id}
+    `;
+
+    await server.prisma.auditLog.create({
+      data: {
+        userId: request.user.userId,
+        action: 'PHOTO_DELETE',
+        entityId: id,
+      },
     });
 
     return reply.status(200).send({ message: 'Photo embedding deleted successfully' });

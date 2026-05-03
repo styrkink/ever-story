@@ -20,6 +20,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@aws-sdk/client-s3':
+        specifier: ^3.1030.0
+        version: 3.1030.0
       '@fastify/cors':
         specifier: ^8.5.0
         version: 8.5.0

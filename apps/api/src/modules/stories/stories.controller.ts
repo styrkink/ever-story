@@ -1,9 +1,10 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { storyGenerationQueue } from 'queue';
+import { buildCharacterContext } from 'ai-pipeline';
 import { AppError } from '../../utils/AppError';
+import { decrypt } from '../../utils/crypto';
 
-// POST /api/stories/generate
 const GenerateStorySchema = z.object({
   childId: z.string().uuid(),
   theme: z.string().min(2),
@@ -13,11 +14,11 @@ const GenerateStorySchema = z.object({
   customIdea: z.string().optional(),
 });
 
+// POST /api/stories/generate
 export const generateStory = async (req: FastifyRequest, reply: FastifyReply) => {
   const user = req.user!;
   const data = GenerateStorySchema.parse(req.body);
 
-  // 1. Verify child belongs to user
   const child = await req.server.prisma.child.findUnique({
     where: { id: data.childId },
   });
@@ -26,25 +27,22 @@ export const generateStory = async (req: FastifyRequest, reply: FastifyReply) =>
     throw new AppError('Child not found or access denied', 403);
   }
 
-  // 2. Check Plan Limits
+  // Check plan limits
   const subscription = await req.server.prisma.subscription.findUnique({
     where: { userId: user.userId },
   });
 
-  const tierLimits = {
-    FREE: 1,
-    BASIC: 5,
-    PREMIUM: 50,
-  };
-
+  const tierLimits = { FREE: 1, BASIC: 5, PREMIUM: 50 };
   const limit = tierLimits[(subscription?.tier as keyof typeof tierLimits) || 'FREE'];
   const used = subscription?.storiesUsedThisMonth || 0;
 
   if (used >= limit) {
-    throw new AppError(`Story generation limit reached for your ${subscription?.tier || 'FREE'} plan.`, 402);
+    throw new AppError(
+      `Story generation limit reached for your ${subscription?.tier || 'FREE'} plan.`,
+      402
+    );
   }
 
-  // 3. Create Story and GenerationJob records
   const story = await req.server.prisma.story.create({
     data: {
       userId: user.userId,
@@ -54,16 +52,11 @@ export const generateStory = async (req: FastifyRequest, reply: FastifyReply) =>
       moral: data.moral,
       ageGroup: data.ageGroup,
       status: 'QUEUED',
-      generationJob: {
-        create: {},
-      },
+      generationJob: { create: {} },
     },
-    include: {
-      generationJob: true,
-    },
+    include: { generationJob: true },
   });
 
-  // 4. Update usage
   if (subscription) {
     await req.server.prisma.subscription.update({
       where: { userId: user.userId },
@@ -71,24 +64,42 @@ export const generateStory = async (req: FastifyRequest, reply: FastifyReply) =>
     });
   } else {
     await req.server.prisma.subscription.create({
-      data: {
-        userId: user.userId,
-        tier: 'FREE',
-        storiesUsedThisMonth: 1,
-      }
+      data: { userId: user.userId, tier: 'FREE', storiesUsedThisMonth: 1 },
     });
   }
 
-  // 5. Add to queue
+  // Decrypt specialNotes before building character context
+  const specialNotes = child.specialNotesEncrypted
+    ? decrypt(child.specialNotesEncrypted)
+    : null;
+
+  const characterContext = buildCharacterContext({
+    name: child.name,
+    nickname: child.nickname,
+    birthDate: child.birthDate,
+    gender: child.gender,
+    interests: child.interests,
+    characterTraits: child.characterTraits,
+    recentAchievements: child.recentAchievements,
+    dreamsAndGoals: child.dreamsAndGoals,
+    petType: child.petType,
+    petName: child.petName,
+    hairColor: child.hairColor,
+    eyeColor: child.eyeColor,
+    appearanceFeatures: child.appearanceFeatures,
+    visibleFeatures: child.visibleFeatures,
+    specialNotes,
+    embeddingVector: child.embeddingVector,
+  });
+
   const job = await storyGenerationQueue.add('generate-text', {
     storyId: story.id,
     params: {
-      childName: child.name,
+      characterContext,
       theme: data.theme,
       artStyle: data.artStyle,
       moral: data.moral,
       ageGroup: data.ageGroup,
-      petName: child.petName || undefined,
       customIdea: data.customIdea,
     },
   });
@@ -97,16 +108,15 @@ export const generateStory = async (req: FastifyRequest, reply: FastifyReply) =>
 };
 
 // GET /api/stories/:id
-export const getStory = async (req: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+export const getStory = async (
+  req: FastifyRequest<{ Params: { id: string } }>,
+  reply: FastifyReply
+) => {
   const story = await req.server.prisma.story.findUnique({
     where: { id: req.params.id },
     include: {
-      pages: {
-        orderBy: { pageNum: 'asc' },
-      },
-      child: {
-        select: { name: true },
-      },
+      pages: { orderBy: { pageNum: 'asc' } },
+      child: { select: { name: true, nickname: true } },
     },
   });
 
@@ -118,7 +128,10 @@ export const getStory = async (req: FastifyRequest<{ Params: { id: string } }>, 
 };
 
 // GET /api/stories/:id/status
-export const getStoryStatus = async (req: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+export const getStoryStatus = async (
+  req: FastifyRequest<{ Params: { id: string } }>,
+  reply: FastifyReply
+) => {
   const story = await req.server.prisma.story.findUnique({
     where: { id: req.params.id },
     select: { status: true, userId: true, manifestUrl: true, pdfUrl: true },
@@ -128,11 +141,7 @@ export const getStoryStatus = async (req: FastifyRequest<{ Params: { id: string 
     throw new AppError('Story not found', 404);
   }
 
-  return { 
-    status: story.status,
-    manifestUrl: story.manifestUrl,
-    pdfUrl: story.pdfUrl
-  };
+  return { status: story.status, manifestUrl: story.manifestUrl, pdfUrl: story.pdfUrl };
 };
 
 // GET /api/stories
@@ -140,11 +149,7 @@ export const listStories = async (req: FastifyRequest, reply: FastifyReply) => {
   const stories = await req.server.prisma.story.findMany({
     where: { userId: req.user!.userId },
     orderBy: { createdAt: 'desc' },
-    include: {
-      child: {
-        select: { name: true }
-      }
-    }
+    include: { child: { select: { name: true, nickname: true } } },
   });
 
   return { stories };

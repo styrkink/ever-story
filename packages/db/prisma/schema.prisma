@@ -10,7 +10,6 @@ datasource db {
   extensions = [vector]
 }
 
-
 enum SubscriptionTier {
   FREE
   BASIC
@@ -29,43 +28,67 @@ enum StoryStatus {
   FAILED
 }
 
+enum Gender {
+  BOY
+  GIRL
+  NOT_SPECIFIED
+}
+
 model User {
-  id                     String            @id @default(uuid())
-  email                  String            @unique
+  id                     String           @id @default(uuid())
+  email                  String           @unique
   passwordHash           String?
   emailVerifiedAt        DateTime?
   coppaVerifiedAt        DateTime?
-  passwordResetToken     String?           @unique
+  passwordResetToken     String?          @unique
   passwordResetExpiresAt DateTime?
-  subscriptionTier       SubscriptionTier  @default(FREE)
-  region                 Region            @default(US)
-  createdAt              DateTime          @default(now())
-  updatedAt              DateTime          @default(now()) @updatedAt
+  subscriptionTier       SubscriptionTier @default(FREE)
+  region                 Region           @default(US)
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @default(now()) @updatedAt
 
   children     Child[]
   stories      Story[]
   subscription Subscription?
   referralsOut Referral[]    @relation("Referrer")
   referralIn   Referral?     @relation("Referred")
+  auditLogs    AuditLog[]
 
   @@map("users")
 }
 
 model Child {
-  id        String   @id @default(uuid())
-  userId    String
-  name      String
-  birthDate DateTime
-  interests String[]
-  petName   String?
-  petType   String?
-  createdAt DateTime @default(now())
-  
-  // pgvector extension field
-  embedding Unsupported("vector(768)")?
+  id     String @id @default(uuid())
+  userId String
 
-  // Base64 encrypted vector
-  embeddingVector String?
+  // Step 1 — Basic info
+  name      String
+  nickname  String?
+  birthDate DateTime
+  gender    Gender   @default(NOT_SPECIFIED)
+
+  // Step 2 — Interests & personalization
+  interests          String[]
+  characterTraits    String[]
+  recentAchievements String?
+  dreamsAndGoals     String?
+  petType            String?
+  petName            String?
+
+  // Step 3 — Appearance
+  // pgvector column populated via raw SQL ($executeRaw)
+  photoEmbedding     Unsupported("vector(512)")?
+  // AES-256-GCM encrypted float array (used for API-level access)
+  embeddingVector    String?
+  hairColor          String?
+  eyeColor           String?
+  appearanceFeatures String[]
+  visibleFeatures    String[]
+  // AES-256-GCM encrypted — may contain sensitive health information
+  specialNotesEncrypted String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   stories Story[]
@@ -151,4 +174,19 @@ model Referral {
 
   @@index([referrerId])
   @@map("referrals")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String
+  action    String
+  entityId  String
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([entityId])
+  @@map("audit_logs")
 }

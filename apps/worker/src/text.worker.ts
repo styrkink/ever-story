@@ -1,6 +1,7 @@
 import { Worker } from 'bullmq';
 import { connection, QUEUE_NAMES, storyImageQueue } from 'queue';
 import { generateStoryText, StoryParams } from 'ai-pipeline';
+import type { CharacterContext } from 'ai-pipeline';
 import { PrismaClient } from 'db';
 
 const prisma = new PrismaClient();
@@ -10,47 +11,47 @@ export const initTextWorker = () => {
     QUEUE_NAMES.STORY_GENERATION,
     async (job) => {
       const { storyId, params } = job.data as { storyId: string; params: StoryParams };
-      
+
       console.log(`[TextWorker] Started story generation for storyId: ${storyId}`);
-      
-      // Update DB status to GENERATING
+
       await prisma.story.update({
         where: { id: storyId },
         data: { status: 'GENERATING' },
       });
 
       await job.updateProgress({ stage: 'text_generation', percent: 10 });
-      
+
       try {
-        // 1. Generate Text
         const pages = await generateStoryText(params);
         await job.updateProgress({ stage: 'text_generation', percent: 100 });
-        
-        // 2. Save Pages to DB
+
         const dbPages = await Promise.all(
           pages.map((p) =>
             prisma.storyPage.create({
-              data: {
-                storyId,
-                pageNum: p.scene_number,
-                text: p.text,
-              },
+              data: { storyId, pageNum: p.scene_number, text: p.text },
             })
           )
         );
 
-        // 3. Dispatch Image Jobs
+        const char: CharacterContext = params.characterContext;
+
         for (let i = 0; i < dbPages.length; i++) {
           const page = dbPages[i];
-          const generatedInfo = pages.find((p) => p.scene_number === page.pageNum)!;
-          
+          const generated = pages.find((p) => p.scene_number === page.pageNum)!;
+
           await storyImageQueue.add('generate-image', {
             storyId,
             pageId: page.id,
             pageNum: page.pageNum,
-            prompt: generatedInfo.illustration_prompt,
+            prompt: generated.illustration_prompt,
             artStyle: params.artStyle,
-            childName: params.childName,
+            childName: char.name,
+            hasEmbedding: char.hasEmbedding,
+            appearanceHint: {
+              hairColor: char.appearance.hairColor,
+              eyeColor: char.appearance.eyeColor,
+              features: char.appearance.features,
+            },
           });
         }
 
@@ -58,13 +59,12 @@ export const initTextWorker = () => {
         return { success: true, storyId };
       } catch (error) {
         console.error(`[TextWorker] Error generating story ${storyId}:`, error);
-        
+
         await prisma.story.update({
           where: { id: storyId },
           data: { status: 'FAILED' },
         });
-        
-        // Update the generation job
+
         await prisma.generationJob.update({
           where: { storyId },
           data: {

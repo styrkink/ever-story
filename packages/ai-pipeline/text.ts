@@ -1,18 +1,18 @@
 import { OpenAI } from 'openai';
 import { z } from 'zod';
 import { getStorySystemPrompt } from './prompts/story-system.prompt';
+import type { CharacterContext } from './promptBuilder';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
 export interface StoryParams {
-  childName: string;
+  characterContext: CharacterContext;
   theme: string;
   artStyle: string;
   moral: string;
   ageGroup: string;
-  petName?: string;
   customIdea?: string;
 }
 
@@ -52,17 +52,11 @@ async function checkContentSafety(text: string) {
 
 const MAX_RETRIES = 3;
 
-/**
- * Generates the text, illustration prompts, and mood for a 10-page story using OpenAI.
- * Incorporates safety moderation checks before and after generation, and automatic retries.
- */
 export async function generateStoryText(params: StoryParams): Promise<StoryPage[]> {
-  // 1. Content Safety check on custom idea (if provided)
   if (params.customIdea) {
     await checkContentSafety(params.customIdea);
   }
 
-  // 2. Build systemPrompt from template
   const systemPrompt = getStorySystemPrompt(params);
 
   let attempt = 0;
@@ -70,46 +64,38 @@ export async function generateStoryText(params: StoryParams): Promise<StoryPage[
 
   while (attempt < MAX_RETRIES) {
     try {
-      // 3. Call OpenAI chat completions
       const completion = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
         response_format: { type: 'json_object' },
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: 'Generate the story now.' }
+          { role: 'user', content: 'Generate the story now.' },
         ],
       });
 
       const responseContent = completion.choices[0]?.message?.content;
-      if (!responseContent) {
-        throw new GenerationError('No content returned from OpenAI');
-      }
+      if (!responseContent) throw new GenerationError('No content returned from OpenAI');
 
-      // 4 & 5. Parse JSON and validate through Zod schema
       const parsed = JSON.parse(responseContent);
       const validated = StoryResponseSchema.parse(parsed);
 
-      // 6. Secondary Content Safety check on the generated text
-      const fullText = validated.pages.map(p => p.text).join('\n\n');
+      const fullText = validated.pages.map((p) => p.text).join('\n\n');
       await checkContentSafety(fullText);
 
-      // 7. Return the valid pages array
       return validated.pages;
     } catch (error) {
       attempt++;
       lastError = error;
 
-      // Don't retry if it's a safety violation or we hit the max retry limit
-      if (error instanceof SafetyError) {
-        throw error;
-      }
+      if (error instanceof SafetyError) throw error;
 
       if (attempt >= MAX_RETRIES) {
-        throw new GenerationError(`Failed to generate story after ${MAX_RETRIES} attempts: ${error instanceof Error ? error.message : String(error)}`);
+        throw new GenerationError(
+          `Failed to generate story after ${MAX_RETRIES} attempts: ${error instanceof Error ? error.message : String(error)}`
+        );
       }
 
-      // Exponential backoff
-      await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+      await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
     }
   }
 
