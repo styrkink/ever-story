@@ -180,4 +180,18 @@ export const authController: FastifyPluginAsync = async (server: FastifyInstance
       return reply.status(200).send(result);
     }
   );
+
+  server.post(
+    '/api/auth/confirm-coppa',
+    { preValidation: [server.authenticate] },
+    async (request, reply) => {
+      const { paymentIntentId } = request.body as { paymentIntentId: string };
+      if (!paymentIntentId) {
+        return reply.status(400).send({ message: 'paymentIntentId is required' });
+      }
+      const coppaService = new CoppaService(server);
+      await coppaService.finalizeVerification(request.user.userId, paymentIntentId);
+      return reply.status(200).send({ verified: true });
+    }
+  );
 };

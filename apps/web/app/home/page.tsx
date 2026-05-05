@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   House, BookOpen, User, Sparkles, Bell, Plus,
   RefreshCw, ShieldCheck, X, Check, UserPlus,
 } from "lucide-react";
 import {
-  getChildren, getStories, calcAge,
+  getChildren, getStories, calcAge, confirmCoppa,
   AuthError, ApiError,
   type Child, type Story,
 } from "@/lib/api";
@@ -36,8 +36,9 @@ function avatarGradient(name: string) {
 }
 
 export default function HomePage() {
-  const router   = useRouter();
-  const greeting = getGreeting();
+  const router       = useRouter();
+  const searchParams = useSearchParams();
+  const greeting     = getGreeting();
 
   const [children,       setChildren]       = useState<Child[]>([]);
   const [stories,        setStories]        = useState<Story[]>([]);
@@ -49,14 +50,24 @@ export default function HomePage() {
   const [coppaModal,     setCoppaModal]     = useState(false);
 
   useEffect(() => {
-    getChildren()
-      .then(setChildren)
-      .catch((err) => {
-        if (err instanceof AuthError)                         router.replace("/login");
-        else if (err instanceof ApiError && err.statusCode === 403) setCoppaRequired(true);
-        else setKidsError("Не удалось загрузить профили");
-      })
-      .finally(() => setLoadingKids(false));
+    const loadChildren = async () => {
+      // If Stripe redirected here after 3DS authentication, finalize COPPA first
+      const piId          = searchParams.get("payment_intent");
+      const redirectStatus = searchParams.get("redirect_status");
+      if (piId && redirectStatus === "succeeded") {
+        try { await confirmCoppa(piId); } catch { /* ignore — getChildren will show 403 if still unverified */ }
+      }
+
+      getChildren()
+        .then(setChildren)
+        .catch((err) => {
+          if (err instanceof AuthError)                         router.replace("/login");
+          else if (err instanceof ApiError && err.statusCode === 403) setCoppaRequired(true);
+          else setKidsError("Не удалось загрузить профили");
+        })
+        .finally(() => setLoadingKids(false));
+    };
+    loadChildren();
 
     getStories()
       .then(setStories)
@@ -65,7 +76,7 @@ export default function HomePage() {
         else setStoriesError("Не удалось загрузить истории");
       })
       .finally(() => setLoadingStories(false));
-  }, [router]);
+  }, [router, searchParams]);
 
   const recentStories = [...stories]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
@@ -246,6 +257,7 @@ export default function HomePage() {
                   <button
                     className="flex items-center gap-1.5 rounded-[14px] px-3 py-1.5"
                     style={{ background: "#2D1B6B" }}
+                    onClick={() => router.push("/add-child")}
                   >
                     <Plus size={14} color="#C4B5FD" />
                     <span className="text-[#C4B5FD] text-[11px] lg:text-[12px]">Добавить ребёнка</span>

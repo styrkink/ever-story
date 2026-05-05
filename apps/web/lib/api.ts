@@ -5,10 +5,20 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 export interface Child {
   id: string;
   name: string;
+  nickname?: string;
   birthDate: string;
+  gender: string;
   interests: string[];
-  petName?: string;
+  characterTraits: string[];
+  recentAchievements?: string;
+  dreamsAndGoals?: string;
   petType?: string;
+  petName?: string;
+  hairColor?: string;
+  eyeColor?: string;
+  appearanceFeatures: string[];
+  visibleFeatures: string[];
+  specialNotes?: string;
   createdAt: string;
 }
 
@@ -31,12 +41,21 @@ export interface Story {
   child: { name: string };
 }
 
-async function apiFetch<T>(path: string): Promise<T> {
+async function apiFetch<T>(
+  path: string,
+  options?: { method?: string; body?: unknown }
+): Promise<T> {
   const token = getAccessToken();
   if (!token) throw new AuthError("No token");
 
+  const hasBody = options?.body !== undefined;
   const res = await fetch(`${API_URL}${path}`, {
-    headers: { Authorization: `Bearer ${token}` },
+    method: options?.method ?? "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...(hasBody ? { "Content-Type": "application/json" } : {}),
+    },
+    body: hasBody ? JSON.stringify(options!.body) : undefined,
   });
 
   if (res.status === 401) {
@@ -44,11 +63,10 @@ async function apiFetch<T>(path: string): Promise<T> {
     throw new AuthError("Unauthorized");
   }
 
-  const data = await res.json();
+  const data = res.status === 204 ? null : await res.json();
 
   if (!res.ok) {
-    const err = new ApiError(data.message ?? "Request failed", res.status);
-    throw err;
+    throw new ApiError(data?.message ?? "Request failed", res.status);
   }
 
   return data as T;
@@ -73,6 +91,34 @@ export class ApiError extends Error {
 
 export async function getChildren(): Promise<Child[]> {
   return apiFetch<Child[]>("/api/children");
+}
+
+export async function createChild(data: Partial<Child> & { name: string; birthDate: string; gender: string }): Promise<Child> {
+  return apiFetch<Child>("/api/children", { method: "POST", body: data });
+}
+
+export async function patchChild(id: string, step: 1 | 2 | 3, data: Record<string, unknown>): Promise<Child> {
+  return apiFetch<Child>(`/api/children/${id}?step=${step}`, { method: "PATCH", body: data });
+}
+
+export async function uploadChildPhoto(id: string, file: File): Promise<{ success: boolean; qualityScore: number }> {
+  const token = getAccessToken();
+  if (!token) throw new AuthError("No token");
+
+  const form = new FormData();
+  form.append("file", file);
+
+  const res = await fetch(`${API_URL}/api/children/${id}/photo`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: form,
+  });
+
+  if (res.status === 401) { clearTokens(); throw new AuthError("Unauthorized"); }
+
+  const data = await res.json();
+  if (!res.ok) throw new ApiError(data?.message ?? "Upload failed", res.status);
+  return data;
 }
 
 export async function getStories(): Promise<Story[]> {
@@ -103,6 +149,30 @@ export async function createCoppaIntent(): Promise<{ clientSecret: string }> {
   }
 
   return data as { clientSecret: string };
+}
+
+export async function confirmCoppa(paymentIntentId: string): Promise<void> {
+  const token = getAccessToken();
+  if (!token) throw new AuthError("No token");
+
+  const res = await fetch(`${API_URL}/api/auth/confirm-coppa`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ paymentIntentId }),
+  });
+
+  if (res.status === 401) {
+    clearTokens();
+    throw new AuthError("Unauthorized");
+  }
+
+  if (!res.ok) {
+    const data = await res.json();
+    throw new ApiError(data.message ?? "Failed to confirm verification", res.status);
+  }
 }
 
 export function calcAge(birthDate: string): string {

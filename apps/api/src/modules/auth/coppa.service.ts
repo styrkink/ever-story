@@ -70,6 +70,33 @@ export class CoppaService {
   }
 
   /**
+   * Verifies a PaymentIntent directly with Stripe and marks the user verified.
+   * Called by the frontend immediately after confirmPayment succeeds, so the
+   * DB is updated before the user navigates to /home (avoids webhook race condition).
+   */
+  async finalizeVerification(userId: string, paymentIntentId: string): Promise<void> {
+    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+    if (
+      paymentIntent.metadata.userId !== userId ||
+      paymentIntent.metadata.purpose !== 'coppa_verification'
+    ) {
+      throw new AppError('Invalid payment intent', 403);
+    }
+
+    if (paymentIntent.status !== 'succeeded' && paymentIntent.status !== 'processing') {
+      throw new AppError(`Payment is not ready (status: ${paymentIntent.status})`, 400);
+    }
+
+    await this.markVerified(userId);
+    // Only refund immediately if the charge has fully settled; for 'processing'
+    // payments the webhook will handle the refund when it transitions to 'succeeded'.
+    if (paymentIntent.status === 'succeeded') {
+      await this.refundVerificationCharge(paymentIntentId, userId);
+    }
+  }
+
+  /**
    * Issues an immediate refund for a PaymentIntent.
    * Called after marking the user verified in the webhook handler.
    */

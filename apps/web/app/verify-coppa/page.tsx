@@ -10,7 +10,7 @@ import {
   useElements,
 } from "@stripe/react-stripe-js";
 import { ShieldCheck, ArrowLeft, Check, Loader2, AlertCircle } from "lucide-react";
-import { createCoppaIntent, AuthError } from "@/lib/api";
+import { createCoppaIntent, confirmCoppa, AuthError } from "@/lib/api";
 
 // Инициализируем Stripe один раз вне компонента (лучшая практика Stripe)
 console.log("Stripe Key from ENV:", process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
@@ -36,27 +36,34 @@ function CoppaPaymentForm({ onSuccess }: { onSuccess: () => void }) {
     setStatus("processing");
     setErrMsg(null);
 
-    const { error } = await stripe.confirmPayment({
+    const result = await stripe.confirmPayment({
       elements,
-      // После успешной оплаты Stripe перенаправляет сюда.
-      // return_url нужен даже если мы обрабатываем через webhook.
-      // Мы указываем /home — там пользователь увидит обновлённый статус.
       confirmParams: {
         return_url: `${window.location.origin}/home`,
       },
-      // Не редиректим если можем обработать Payment без редиректа
       redirect: "if_required",
     });
 
-    if (error) {
+    if (result.error) {
       setStatus("error");
-      setErrMsg(error.message ?? "Ошибка обработки платежа");
-    } else {
-      // Платёж подтверждён — webhook обновит coppaVerifiedAt в БД.
-      // Показываем пользователю успех и редиректим.
-      setStatus("idle");
-      onSuccess();
+      setErrMsg(result.error.message ?? "Ошибка обработки платежа");
+      return;
     }
+
+    // Use the paymentIntent returned directly by confirmPayment — avoids any
+    // clientSecret parsing that could reference a stale/different intent.
+    const paymentIntentId = result.paymentIntent.id;
+    try {
+      await confirmCoppa(paymentIntentId);
+    } catch (confirmErr: any) {
+      console.error("[COPPA] confirmCoppa failed:", confirmErr);
+      setStatus("error");
+      setErrMsg(`Верификация не сохранена: ${confirmErr?.message ?? "неизвестная ошибка"}. Обратитесь в поддержку.`);
+      return;
+    }
+
+    setStatus("idle");
+    onSuccess();
   };
 
   return (
