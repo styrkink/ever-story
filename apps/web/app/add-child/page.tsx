@@ -156,61 +156,50 @@ export default function AddChildPage() {
 
   async function handleNext() {
     setErrors([]);
+    
+    if (step === 1) {
+      const errs: string[] = [];
+      if (!form.name.trim()) errs.push("Введите имя ребёнка");
+      if (!form.birthDate) errs.push("Укажите дату рождения");
+      if (errs.length) { setErrors(errs); return; }
+      setStep(2);
+      return;
+    } else if (step === 2) {
+      setStep(3);
+      return;
+    }
+
     setLoading(true);
     try {
-      if (step === 1) {
-        const errs: string[] = [];
-        if (!form.name.trim()) errs.push("Введите имя ребёнка");
-        if (!form.birthDate) errs.push("Укажите дату рождения");
-        if (errs.length) { setErrors(errs); return; }
+      const child = await createChild({
+        name: form.name.trim(),
+        nickname: form.nickname.trim() || undefined,
+        birthDate: new Date(form.birthDate).toISOString(),
+        gender: form.gender,
+        interests: form.interests,
+        characterTraits: form.characterTraits,
+        recentAchievements: form.recentAchievements || undefined,
+        dreamsAndGoals: form.dreamsAndGoals || undefined,
+        petType: form.petType || undefined,
+        petName: form.petName.trim() || undefined,
+        hairColor: form.hairColor === "not_specified" ? undefined : form.hairColor,
+        eyeColor: form.eyeColor === "not_specified" ? undefined : form.eyeColor,
+        appearanceFeatures: form.appearanceFeatures,
+        visibleFeatures: form.visibleFeatures,
+        specialNotes: form.specialNotes || undefined,
+      } as Parameters<typeof createChild>[0]);
+      
+      setChildId(child.id);
 
-        const child = await createChild({
-          name: form.name.trim(),
-          nickname: form.nickname.trim() || undefined,
-          birthDate: new Date(form.birthDate).toISOString(),
-          gender: form.gender,
-          interests: [],
-          characterTraits: [],
-          appearanceFeatures: [],
-          visibleFeatures: [],
-        } as Parameters<typeof createChild>[0]);
-        setChildId(child.id);
-        setStep(2);
-      } else if (step === 2) {
-        if (!childId) return;
-        await patchChild(childId, 2, {
-          interests: form.interests,
-          characterTraits: form.characterTraits,
-          recentAchievements: form.recentAchievements || undefined,
-          dreamsAndGoals: form.dreamsAndGoals || undefined,
-          petType: form.petType || undefined,
-          petName: form.petName.trim() || undefined,
-        });
-        setStep(3);
-      } else {
-        if (!childId) return;
-        await patchChild(childId, 3, {
-          hairColor: form.hairColor || undefined,
-          eyeColor: form.eyeColor || undefined,
-          appearanceFeatures: form.appearanceFeatures,
-          visibleFeatures: form.visibleFeatures,
-          specialNotes: form.specialNotes || undefined,
-        });
-        if (photoMode === "photo" && photos.length > 0) {
-          for (const photo of photos) {
-            try { await uploadChildPhoto(childId, photo); } catch { /* non-blocking */ }
-          }
+      if (photoMode === "photo" && photos.length > 0) {
+        for (const photo of photos) {
+          try { await uploadChildPhoto(child.id, photo); } catch { /* non-blocking */ }
         }
-        router.push("/home");
       }
+      router.push("/home");
     } catch (err) {
       if (err instanceof AuthError) {
-        if (step === 3) {
-          // Don't auto-logout on step 3 — profile was already created; let user navigate home
-          setErrors(["Сессия истекла. Ваш профиль сохранён частично."]);
-        } else {
-          router.replace("/login");
-        }
+        router.replace("/login");
       } else if (err instanceof ApiError) {
         setErrors([err.message]);
       } else {
