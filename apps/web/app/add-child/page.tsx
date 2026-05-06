@@ -4,10 +4,12 @@ import { useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeft, ArrowRight, Check, ShieldCheck,
+  ArrowLeft, ArrowRight, Check, ShieldCheck, X,
   House, BookOpen, User, Bell, Sparkles,
   CloudUpload, ChevronDown, ChevronUp, Calendar,
   Camera, SlidersHorizontal, Search, Heart,
+  Wand2, Star, Image as ImageIcon, UserRound, Target, Smile, Palette,
+  type LucideIcon,
 } from "lucide-react";
 import { createChild, patchChild, uploadChildPhoto, AuthError, ApiError } from "@/lib/api";
 
@@ -219,36 +221,49 @@ export default function AddChildPage() {
     else setStep((s) => s - 1);
   }
 
-  const rightPanels = [
+  const rightPanels: {
+    Icon: LucideIcon;
+    title: string;
+    subtitle: string;
+    bullets: {
+      Icon: LucideIcon;
+      text: string;
+      variant?: "green";
+    }[];
+  }[] = [
     {
+      Icon: Wand2,
       title: "Персонаж вашего ребёнка оживёт в сказке",
       subtitle: "Каждая деталь помогает ИИ создать по-настоящему уникального героя — со своим именем, характером и любимыми занятиями",
       bullets: [
-        "Уникальный персонаж с характером вашего ребёнка",
-        "Сказка, адаптированная под возраст и интересы",
-        "Иллюстрации в стиле, который нравится ребёнку",
+        { Icon: UserRound, text: "Уникальный персонаж с характером вашего ребёнка" },
+        { Icon: BookOpen,  text: "Сказки, адаптированные под возраст и интересы" },
+        { Icon: ImageIcon, text: "Иллюстрации в стиле, который нравится ребёнку" },
       ],
     },
     {
+      Icon: Star,
       title: "Как интересы делают сказку особенной",
       subtitle: "Чем точнее вы расскажете о ребёнке, тем ярче получится история",
       bullets: [
-        "Интересы = сцены с любимыми темами: космос, динозавры, приключения",
-        "Черты характера → герой поступает как ваш ребёнок",
-        "Мечты и цели вплетаются в сюжет — ребёнок видит себя в роли героя",
+        { Icon: Target,   text: "Интересы → сказки с любимыми темами: космос, динозавры, приключения" },
+        { Icon: Smile,    text: "Черты характера → герой, похожий по духу на вашего ребёнка" },
+        { Icon: BookOpen, text: "Нарратив → стиль повествования, который нравится именно вашему ребёнку" },
       ],
     },
     {
+      Icon: ImageIcon,
       title: "Иллюстрации, которые вас удивят",
       subtitle: "Фото и описание внешности помогают создать персонажа, который выглядит как ваш ребёнок",
       bullets: [
-        "Черты лица при загрузке фото воссоздаются для наилучшего результата",
-        "Оттенок цвета волос и глаз помогает ИИ нарисовать красивого персонажа",
-        "Каждая иллюстрация показывает уникального героя",
+        { Icon: Camera,      text: "Чёткое фото при хорошем освещении даёт наилучший результат" },
+        { Icon: Palette,     text: "Описание цвета волос и глаз поможет ИИ нарисовать похожего персонажа" },
+        { Icon: ShieldCheck, text: "Данные зашифрованы и никогда не передаются третьим лицам", variant: "green" },
       ],
     },
   ];
   const rightPanel = rightPanels[step - 1];
+  const RightIcon = rightPanel.Icon;
   const stepLabels = ["Основная информация", "Интересы и персонализация", "Фото и внешность"];
   const sessionExpired = errors.some((e) => e.includes("Сессия истекла"));
 
@@ -279,7 +294,10 @@ export default function AddChildPage() {
           >
             <User size={18} color="#FFFFFF" />
           </div>
-          <span className="text-white text-[13px] font-semibold">Мой профиль</span>
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <span className="text-white text-[13px] font-semibold">Мой профиль</span>
+            <span className="text-[11px] truncate" style={{ color: "#9B8EC4" }}>1 ребёнок · 18 историй</span>
+          </div>
         </div>
       </aside>
 
@@ -425,31 +443,51 @@ export default function AddChildPage() {
           {/* Right info panel — desktop only */}
           <div
             className="hidden lg:flex flex-col justify-center flex-shrink-0"
-            style={{ width: 400, background: "#100839", borderLeft: "1px solid #2D1B6B", padding: "48px 56px" }}
+            style={{ width: 440, background: "#100839", borderLeft: "1px solid #2D1B6B", padding: "48px 56px" }}
           >
-            <div className="flex flex-col gap-7">
+            <div className="flex flex-col items-center gap-7">
               <div
-                className="flex items-center justify-center rounded-[36px]"
+                className="flex items-center justify-center rounded-full"
                 style={{ width: 72, height: 72, background: "linear-gradient(135deg, #7B2FFF 0%, #4F46E5 100%)" }}
               >
-                <Sparkles size={28} color="#FFFFFF" />
+                <RightIcon size={36} color="#FFFFFF" />
               </div>
-              <div className="flex flex-col gap-3">
-                <span className="text-white font-bold leading-snug" style={{ fontSize: 24 }}>{rightPanel.title}</span>
-                <span className="leading-relaxed" style={{ fontSize: 14, color: "#9B8EC4" }}>{rightPanel.subtitle}</span>
+              <div className="flex flex-col gap-3 w-full">
+                <span className="text-white font-bold leading-snug text-center" style={{ fontSize: 24 }}>
+                  {rightPanel.title}
+                </span>
+                <span className="leading-relaxed text-center" style={{ fontSize: 14, color: "#9B8EC4" }}>
+                  {rightPanel.subtitle}
+                </span>
               </div>
-              <div className="flex flex-col gap-3">
-                {rightPanel.bullets.map((b, i) => (
-                  <div key={i} className="flex items-start gap-3 rounded-[14px] px-4 py-[14px]" style={{ background: "#1A1050" }}>
+              <div className="flex flex-col gap-3 w-full">
+                {rightPanel.bullets.map(({ Icon, text, variant }, i) => {
+                  const green = variant === "green";
+                  return (
                     <div
-                      className="flex-shrink-0 flex items-center justify-center rounded-[10px]"
-                      style={{ width: 28, height: 28, background: "#2D1B6B" }}
+                      key={i}
+                      className="flex items-center gap-[14px] rounded-[12px]"
+                      style={{
+                        background: green ? "#0D2E1E" : "#1C1440",
+                        border: `1px solid ${green ? "#1A5C38" : "#2D1B6B"}`,
+                        padding: "14px 16px",
+                      }}
                     >
-                      <span className="font-bold" style={{ fontSize: 12, color: "#C4B5FD" }}>{["А", "Б", "В"][i]}</span>
+                      <div
+                        className="flex-shrink-0 flex items-center justify-center rounded-[10px]"
+                        style={{ width: 36, height: 36, background: green ? "#1A5C38" : "#2D1B6B" }}
+                      >
+                        <Icon size={18} color={green ? "#4ADE80" : "#9B6FFF"} />
+                      </div>
+                      <span
+                        className="leading-relaxed"
+                        style={{ fontSize: 13, color: green ? "#6EC99A" : "#CEBED8" }}
+                      >
+                        {text}
+                      </span>
                     </div>
-                    <span className="leading-relaxed" style={{ fontSize: 13, color: "#C4B5FD" }}>{b}</span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -527,6 +565,7 @@ function Step1({
   form: FormData;
   set: <K extends keyof FormData>(key: K, v: FormData[K]) => void;
 }) {
+  const dateRef = useRef<HTMLInputElement>(null);
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-col gap-1">
@@ -548,6 +587,7 @@ function Step1({
       <Field label="Дата рождения" required>
         <div className="relative">
           <input
+            ref={dateRef}
             type="date"
             value={form.birthDate}
             onChange={(e) => set("birthDate", e.target.value)}
@@ -559,7 +599,13 @@ function Step1({
               fontSize: 14, colorScheme: "dark",
             }}
           />
-          <Calendar size={18} color="#7B2FFF" className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <button
+            type="button"
+            onClick={() => dateRef.current?.showPicker()}
+            className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center justify-center"
+          >
+            <Calendar size={18} color="#7B2FFF" />
+          </button>
         </div>
         <Helper>Автоматически подберём сложность текста: 2–4 / 5–7 / 8–12 лет</Helper>
       </Field>
@@ -1031,15 +1077,21 @@ function MultiSelectDropdown({
             value.map((item) => (
               <span
                 key={item}
-                className="font-semibold flex-shrink-0"
+                className="font-semibold flex-shrink-0 inline-flex items-center"
                 style={{
-                  borderRadius: 14, height: 28, padding: "0 10px",
-                  background: "linear-gradient(180deg, #7B2FFF 0%, #4F46E5 100%)",
+                  borderRadius: 14, height: 28, padding: "0 10px", gap: 6,
+                  background: "linear-gradient(90deg, #7B2FFF 0%, #4F46E5 100%)",
                   color: "#FFFFFF", fontSize: 12,
-                  display: "inline-flex", alignItems: "center",
                 }}
               >
                 {labels[item]}
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onChange(value.filter((x) => x !== item)); }}
+                  className="flex items-center justify-center flex-shrink-0"
+                >
+                  <X size={12} color="#FFFFFF" />
+                </button>
               </span>
             ))
           ) : (
@@ -1101,16 +1153,18 @@ function MultiSelectDropdown({
                         type="button"
                         disabled={maxed}
                         onClick={() => toggle(item)}
-                        className="font-semibold transition-all disabled:opacity-40"
+                        className="inline-flex items-center transition-all disabled:opacity-40"
                         style={{
-                          borderRadius: 17, height: 34, padding: "0 12px", fontSize: 12,
+                          borderRadius: 15, height: 30, padding: "0 10px", fontSize: 12, gap: 4,
+                          fontWeight: selected ? 600 : 500,
                           background: selected
-                            ? "linear-gradient(180deg, #7B2FFF 0%, #4F46E5 100%)"
+                            ? "linear-gradient(90deg, #7B2FFF 0%, #4F46E5 100%)"
                             : "#1C1740",
-                          color: selected ? "#FFFFFF" : "#9B8EC4",
+                          color: "#FFFFFF",
                           border: selected ? "none" : "1.5px solid #2D1B6B",
                         }}
                       >
+                        {selected && <Check size={11} color="#FFFFFF" className="flex-shrink-0" />}
                         {labels[item]}
                       </button>
                     );
