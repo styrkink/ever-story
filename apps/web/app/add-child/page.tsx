@@ -312,7 +312,7 @@ export default function AddChildPage() {
 
       {/* ── Sidebar — desktop only ── */}
       <aside
-        className="hidden lg:flex flex-col justify-between flex-shrink-0"
+        className="hidden lg:flex flex-col justify-between flex-shrink-0 select-none"
         style={{ width: 240, background: "#080617" }}
       >
         <div className="flex flex-col gap-2">
@@ -346,7 +346,7 @@ export default function AddChildPage() {
 
         {/* Desktop top bar */}
         <header
-          className="hidden lg:flex items-center justify-between flex-shrink-0 px-10"
+          className="hidden lg:flex items-center justify-between flex-shrink-0 px-10 select-none"
           style={{ height: 72, background: "#080617", borderBottom: "1px solid #1A1050" }}
         >
           <div className="flex flex-col gap-0.5">
@@ -374,7 +374,7 @@ export default function AddChildPage() {
 
         {/* Mobile top bar */}
         <div
-          className="flex lg:hidden items-center justify-between flex-shrink-0 px-4"
+          className="flex lg:hidden items-center justify-between flex-shrink-0 px-4 select-none"
           style={{ height: 60, background: "#080617", borderBottom: "1px solid #1A1050" }}
         >
           <Link href="/home" className="text-white font-bold" style={{ fontSize: 16 }}>✨ EverStory</Link>
@@ -550,7 +550,7 @@ export default function AddChildPage() {
 
       {/* Mobile bottom nav */}
       <nav
-        className="lg:hidden fixed bottom-0 left-0 right-0 flex items-center justify-around"
+        className="lg:hidden fixed bottom-0 left-0 right-0 flex items-center justify-around select-none"
         style={{ height: 72, background: "#080617", borderTop: "1px solid #1A1050" }}
       >
         <BottomTab icon={<House size={20} />} label="Главная" href="/home" active />

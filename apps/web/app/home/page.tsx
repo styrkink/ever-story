@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   House, BookOpen, User, Sparkles, Bell, Plus,
@@ -110,17 +111,17 @@ export default function HomePage() {
 
       {/* ── SIDEBAR — desktop only ── */}
       <aside
-        className="hidden lg:flex flex-col justify-between flex-shrink-0"
+        className="hidden lg:flex flex-col justify-between flex-shrink-0 select-none"
         style={{ width: 240, background: "#080617" }}
       >
         <div className="flex flex-col gap-2">
-          <div className="px-6 pt-8 pb-5">
+          <Link href="/home" className="px-6 pt-8 pb-5 hover:opacity-80 transition-opacity">
             <span className="text-white text-[20px] font-bold">✨ EverStory</span>
-          </div>
+          </Link>
           <nav className="flex flex-col gap-1 px-3">
-            <NavItem icon={<House size={18} />} label="Главная" active />
-            <NavItem icon={<BookOpen size={18} />} label="Истории" />
-            <NavItem icon={<User size={18} />} label="Профиль" />
+            <NavItem icon={<House size={18} />} label="Главная" href="/home" active />
+            <NavItem icon={<BookOpen size={18} />} label="Истории" href="/library" />
+            <NavItem icon={<User size={18} />} label="Профиль" href="/profile" />
           </nav>
         </div>
         <div className="flex items-center gap-3 px-4 py-5" style={{ background: "#0D0A24" }}>
@@ -147,7 +148,7 @@ export default function HomePage() {
 
         {/* Top bar — desktop */}
         <header
-          className="hidden lg:flex items-center justify-between flex-shrink-0 px-10"
+          className="hidden lg:flex items-center justify-between flex-shrink-0 px-10 select-none"
           style={{ height: 72, background: "#080617", borderBottom: "1px solid #1A1050" }}
         >
           <div className="flex flex-col gap-0.5">
@@ -173,7 +174,7 @@ export default function HomePage() {
 
         {/* Mobile top bar */}
         <div
-          className="flex lg:hidden items-center justify-between flex-shrink-0 px-4"
+          className="flex lg:hidden items-center justify-between flex-shrink-0 px-4 select-none"
           style={{ height: 60, background: "#080617", borderBottom: "1px solid #1A1050" }}
         >
           <span className="text-white font-bold" style={{ fontSize: 16 }}>✨ EverStory</span>
@@ -329,12 +330,12 @@ export default function HomePage() {
 
       {/* ── BOTTOM TAB BAR — mobile only ── */}
       <nav
-        className="lg:hidden fixed bottom-0 left-0 right-0 flex items-center justify-around"
+        className="lg:hidden fixed bottom-0 left-0 right-0 flex items-center justify-around select-none"
         style={{ height: 72, background: "#080617", borderTop: "1px solid #1A1050" }}
       >
-        <BottomTab icon={<House size={20} />} label="Главная" active />
-        <BottomTab icon={<BookOpen size={20} />} label="Истории" />
-        <BottomTab icon={<User size={20} />} label="Профиль" />
+        <BottomTab icon={<House size={20} />} label="Главная" href="/home" active />
+        <BottomTab icon={<BookOpen size={20} />} label="Истории" href="/library" />
+        <BottomTab icon={<User size={20} />} label="Профиль" href="/profile" />
       </nav>
     </div>
   );
@@ -342,28 +343,33 @@ export default function HomePage() {
 
 // ── Reusable layout pieces ──────────────────────────────────────────────────
 
-function NavItem({ icon, label, active }: { icon: React.ReactNode; label: string; active?: boolean }) {
+function NavItem({
+  icon, label, href, active,
+}: { icon: React.ReactNode; label: string; href: string; active?: boolean }) {
   return (
-    <div
-      className="flex items-center gap-3 rounded-[12px] px-3 h-12 cursor-pointer"
+    <Link
+      href={href}
+      className="flex items-center gap-3 rounded-[12px] px-3 h-12 transition-all"
       style={active ? { background: "linear-gradient(180deg, #7B2FFF 0%, #4F46E5 100%)" } : {}}
     >
       <span style={{ color: active ? "#FFFFFF" : "#9B8EC4" }}>{icon}</span>
       <span style={{ color: active ? "#FFFFFF" : "#9B8EC4", fontWeight: active ? 600 : 500, fontSize: 14 }}>
         {label}
       </span>
-    </div>
+    </Link>
   );
 }
 
-function BottomTab({ icon, label, active }: { icon: React.ReactNode; label: string; active?: boolean }) {
+function BottomTab({
+  icon, label, href, active,
+}: { icon: React.ReactNode; label: string; href: string; active?: boolean }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-1 px-6 py-2 cursor-pointer">
+    <Link href={href} className="flex flex-col items-center justify-center gap-1 px-6 py-2">
       <span style={{ color: active ? "#7B2FFF" : "#9B8EC4" }}>{icon}</span>
       <span className="font-semibold" style={{ fontSize: 10, color: active ? "#7B2FFF" : "#9B8EC4" }}>
         {label}
       </span>
-    </div>
+    </Link>
   );
 }
 
