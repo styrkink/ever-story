@@ -1,3 +1,5 @@
+import { env } from '../config/env';
+
 export interface FaceServiceResult {
   faceFound: boolean;
   qualityScore: number;
@@ -5,25 +7,47 @@ export interface FaceServiceResult {
 }
 
 export class FaceService {
-  /**
-   * Mock implementation of extracting face embedding from an image
-   * @param base64Image Base64 encoded image string
-   */
   static async extractEmbedding(base64Image: string): Promise<FaceServiceResult> {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 800));
+    if (!env.FACE_SERVICE_URL) {
+      return FaceService.mock();
+    }
 
-    // For the MVP mock, we assume the face is generally found and quality is acceptable.
-    // In a real scenario, this would call a python microservice endpoint.
-    const randomQuality = 0.5 + Math.random() * 0.5; // Quality between 0.5 and 1.0
+    const abort = new AbortController();
+    const timer = setTimeout(() => abort.abort(), 30_000);
 
-    // Generate a random vector of 512 dimensions
-    const embedding = Array.from({ length: 512 }, () => Math.random() * 2 - 1);
+    try {
+      const res = await fetch(`${env.FACE_SERVICE_URL}/extract`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: base64Image }),
+        signal: abort.signal,
+      });
 
+      if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        throw new Error(`Face service responded ${res.status}: ${text}`);
+      }
+
+      return (await res.json()) as FaceServiceResult;
+    } catch (err) {
+      if ((err as Error).name === 'AbortError') {
+        throw new Error('Face service timed out (30s)');
+      }
+      throw err;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  // Used when FACE_SERVICE_URL is not configured (local dev without Python service)
+  private static async mock(): Promise<FaceServiceResult> {
+    await new Promise((r) => setTimeout(r, 200));
+    const raw = Array.from({ length: 512 }, () => Math.random() * 2 - 1);
+    const norm = Math.sqrt(raw.reduce((s, x) => s + x * x, 0));
     return {
       faceFound: true,
-      qualityScore: randomQuality,
-      embedding,
+      qualityScore: 0.5 + Math.random() * 0.5,
+      embedding: raw.map((x) => x / norm),
     };
   }
 }

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft, ArrowRight, Check, ShieldCheck, X,
   House, BookOpen, User, Bell, Sparkles,
@@ -11,7 +11,7 @@ import {
   Wand2, Star, Image as ImageIcon, UserRound, Target, Smile, Palette,
   type LucideIcon,
 } from "lucide-react";
-import { createChild, patchChild, uploadChildPhoto, AuthError, ApiError } from "@/lib/api";
+import { createChild, updateChild, getChildren, uploadChildPhoto, AuthError, ApiError } from "@/lib/api";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -134,6 +134,9 @@ const INITIAL: FormData = {
 
 export default function AddChildPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const editId = searchParams.get("edit");
+
   const [step, setStep] = useState(1);
   const [childId, setChildId] = useState<string | null>(null);
   const [form, setForm] = useState<FormData>(INITIAL);
@@ -141,6 +144,36 @@ export default function AddChildPage() {
   const [photos, setPhotos] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
+  const [loadingEdit, setLoadingEdit] = useState(!!editId);
+
+  useEffect(() => {
+    if (!editId) return;
+    getChildren()
+      .then((list) => {
+        const child = list.find((c) => c.id === editId);
+        if (child) {
+          setForm({
+            name: child.name,
+            nickname: child.nickname ?? "",
+            birthDate: child.birthDate.slice(0, 10),
+            gender: (child.gender as "BOY" | "GIRL" | "NOT_SPECIFIED") || "NOT_SPECIFIED",
+            interests: child.interests,
+            characterTraits: child.characterTraits,
+            recentAchievements: child.recentAchievements ?? "",
+            dreamsAndGoals: child.dreamsAndGoals ?? "",
+            petType: child.petType ?? "",
+            petName: child.petName ?? "",
+            hairColor: child.hairColor ?? "not_specified",
+            eyeColor: child.eyeColor ?? "not_specified",
+            appearanceFeatures: child.appearanceFeatures,
+            visibleFeatures: child.visibleFeatures,
+            specialNotes: child.specialNotes ?? "",
+          });
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoadingEdit(false));
+  }, [editId]);
 
   function set<K extends keyof FormData>(key: K, value: FormData[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -172,30 +205,37 @@ export default function AddChildPage() {
     }
 
     setLoading(true);
+    const payload = {
+      name: form.name.trim(),
+      nickname: form.nickname.trim() || undefined,
+      birthDate: new Date(form.birthDate).toISOString(),
+      gender: form.gender,
+      interests: form.interests,
+      characterTraits: form.characterTraits,
+      recentAchievements: form.recentAchievements || undefined,
+      dreamsAndGoals: form.dreamsAndGoals || undefined,
+      petType: form.petType || undefined,
+      petName: form.petName.trim() || undefined,
+      hairColor: form.hairColor === "not_specified" ? undefined : form.hairColor,
+      eyeColor: form.eyeColor === "not_specified" ? undefined : form.eyeColor,
+      appearanceFeatures: form.appearanceFeatures,
+      visibleFeatures: form.visibleFeatures,
+      specialNotes: form.specialNotes || undefined,
+    };
     try {
-      const child = await createChild({
-        name: form.name.trim(),
-        nickname: form.nickname.trim() || undefined,
-        birthDate: new Date(form.birthDate).toISOString(),
-        gender: form.gender,
-        interests: form.interests,
-        characterTraits: form.characterTraits,
-        recentAchievements: form.recentAchievements || undefined,
-        dreamsAndGoals: form.dreamsAndGoals || undefined,
-        petType: form.petType || undefined,
-        petName: form.petName.trim() || undefined,
-        hairColor: form.hairColor === "not_specified" ? undefined : form.hairColor,
-        eyeColor: form.eyeColor === "not_specified" ? undefined : form.eyeColor,
-        appearanceFeatures: form.appearanceFeatures,
-        visibleFeatures: form.visibleFeatures,
-        specialNotes: form.specialNotes || undefined,
-      } as Parameters<typeof createChild>[0]);
-      
-      setChildId(child.id);
+      let targetId: string;
+      if (editId) {
+        await updateChild(editId, payload);
+        targetId = editId;
+      } else {
+        const child = await createChild(payload as Parameters<typeof createChild>[0]);
+        setChildId(child.id);
+        targetId = child.id;
+      }
 
       if (photoMode === "photo" && photos.length > 0) {
         for (const photo of photos) {
-          try { await uploadChildPhoto(child.id, photo); } catch { /* non-blocking */ }
+          try { await uploadChildPhoto(targetId, photo); } catch { /* non-blocking */ }
         }
       }
       router.push("/home");
@@ -310,7 +350,9 @@ export default function AddChildPage() {
           style={{ height: 72, background: "#080617", borderBottom: "1px solid #1A1050" }}
         >
           <div className="flex flex-col gap-0.5">
-            <span className="text-white text-[18px] font-bold">Создание профиля ребёнка</span>
+            <span className="text-white text-[18px] font-bold">
+              {editId ? "Редактирование профиля" : "Создание профиля ребёнка"}
+            </span>
             <span style={{ color: "#9B8EC4", fontSize: 13 }}>Шаг {step} из 3 · {stepLabels[step - 1]}</span>
           </div>
           <div className="flex items-center gap-4">
@@ -360,10 +402,19 @@ export default function AddChildPage() {
           <div className="flex-1 flex flex-col overflow-y-auto">
             <div className="w-full px-4 lg:px-10 pt-6 pb-28 lg:pb-10 flex flex-col gap-6">
 
-              <Stepper step={step} labels={stepLabels} />
+              {loadingEdit && (
+                <div className="flex items-center justify-center py-20">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="animate-spin rounded-full" style={{ width: 36, height: 36, border: "3px solid #2D1B6B", borderTopColor: "#7B2FFF" }} />
+                    <span style={{ fontSize: 13, color: "#9B8EC4" }}>Загрузка профиля...</span>
+                  </div>
+                </div>
+              )}
+
+              {!loadingEdit && <Stepper step={step} labels={stepLabels} />}
 
               {/* Errors */}
-              {errors.length > 0 && (
+              {!loadingEdit && errors.length > 0 && (
                 <div
                   className="rounded-[12px] px-4 py-3 flex flex-col gap-1.5"
                   style={{ background: "#3B0F0F", border: "1px solid #7F1D1D" }}
@@ -379,9 +430,9 @@ export default function AddChildPage() {
                 </div>
               )}
 
-              {step === 1 && <Step1 form={form} set={set} />}
-              {step === 2 && <Step2 form={form} set={set} toggleList={toggleList} />}
-              {step === 3 && (
+              {!loadingEdit && step === 1 && <Step1 form={form} set={set} />}
+              {!loadingEdit && step === 2 && <Step2 form={form} set={set} toggleList={toggleList} />}
+              {!loadingEdit && step === 3 && (
                 <Step3
                   form={form}
                   set={set}
@@ -394,6 +445,7 @@ export default function AddChildPage() {
               )}
 
               {/* Nav buttons */}
+              {!loadingEdit && (
               <div className="flex items-center justify-between pt-2">
                 <button
                   onClick={handleBack}
@@ -432,10 +484,11 @@ export default function AddChildPage() {
                   ) : step < 3 ? (
                     <><span>Далее</span><ArrowRight size={16} /></>
                   ) : (
-                    <><Sparkles size={16} /><span>Сохранить профиль</span></>
+                    <><Sparkles size={16} /><span>{editId ? "Сохранить изменения" : "Сохранить профиль"}</span></>
                   )}
                 </button>
               </div>
+              )}
 
             </div>
           </div>

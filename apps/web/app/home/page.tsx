@@ -6,9 +6,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   House, BookOpen, User, Sparkles, Bell, Plus,
   RefreshCw, ShieldCheck, X, Check, UserPlus,
+  Pencil, Trash2,
 } from "lucide-react";
 import {
-  getChildren, getStories, calcAge, confirmCoppa,
+  getChildren, getStories, calcAge, confirmCoppa, deleteChild,
   AuthError, ApiError,
   type Child, type Story,
 } from "@/lib/api";
@@ -48,6 +49,9 @@ export default function HomePage() {
   const [storiesError,   setStoriesError]   = useState<string | null>(null);
   const [coppaRequired,  setCoppaRequired]  = useState(false);
   const [coppaModal,     setCoppaModal]     = useState(false);
+  const [deleteTarget,   setDeleteTarget]   = useState<Child | null>(null);
+  const [deleting,       setDeleting]       = useState(false);
+  const [deleteError,    setDeleteError]    = useState<string | null>(null);
 
   useEffect(() => {
     const loadChildren = async () => {
@@ -77,6 +81,21 @@ export default function HomePage() {
       })
       .finally(() => setLoadingStories(false));
   }, [router, searchParams]);
+
+  async function handleDeleteConfirm() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await deleteChild(deleteTarget.id);
+      setChildren((prev) => prev.filter((c) => c.id !== deleteTarget.id));
+      setDeleteTarget(null);
+    } catch {
+      setDeleteError("Не удалось удалить профиль. Попробуйте ещё раз.");
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   const recentStories = [...stories]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
@@ -278,7 +297,16 @@ export default function HomePage() {
                   {children.map((child) => {
                     const cs = stories.filter((s) => s.childId === child.id);
                     const cp = cs.reduce((a, s) => a + (s.pages?.length ?? 0), 0);
-                    return <ChildCard key={child.id} child={child} storyCount={cs.length} pageCount={cp} />;
+                    return (
+                      <ChildCard
+                        key={child.id}
+                        child={child}
+                        storyCount={cs.length}
+                        pageCount={cp}
+                        onEdit={() => router.push(`/add-child?edit=${child.id}`)}
+                        onDelete={() => { setDeleteError(null); setDeleteTarget(child); }}
+                      />
+                    );
                   })}
                 </div>
               )}
@@ -289,6 +317,15 @@ export default function HomePage() {
       </div>
 
       {coppaModal && <CoppaInfoModal onClose={() => setCoppaModal(false)} />}
+      {deleteTarget && (
+        <DeleteChildModal
+          child={deleteTarget}
+          onCancel={() => setDeleteTarget(null)}
+          onConfirm={handleDeleteConfirm}
+          deleting={deleting}
+          error={deleteError}
+        />
+      )}
 
       {/* ── BOTTOM TAB BAR — mobile only ── */}
       <nav
@@ -373,7 +410,12 @@ function StoryCard({ story }: { story: Story }) {
 
 // ── Child card ──────────────────────────────────────────────────────────────
 
-function ChildCard({ child, storyCount, pageCount }: { child: Child; storyCount: number; pageCount: number }) {
+function ChildCard({
+  child, storyCount, pageCount, onEdit, onDelete,
+}: {
+  child: Child; storyCount: number; pageCount: number;
+  onEdit: () => void; onDelete: () => void;
+}) {
   return (
     <div
       className="flex items-center gap-4 lg:gap-5 rounded-[16px] px-4 lg:px-6 py-[14px] lg:py-5"
@@ -400,6 +442,22 @@ function ChildCard({ child, storyCount, pageCount }: { child: Child; storyCount:
           <span className="text-[#FFB703] text-[22px] font-bold">{pageCount}</span>
           <span className="text-[#9B8EC4] text-[12px]">страниц</span>
         </div>
+      </div>
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <button
+          onClick={onEdit}
+          className="flex items-center justify-center rounded-full"
+          style={{ width: 34, height: 34, background: "#2D1B6B" }}
+        >
+          <Pencil size={15} color="#C4B5FD" />
+        </button>
+        <button
+          onClick={onDelete}
+          className="flex items-center justify-center rounded-full"
+          style={{ width: 34, height: 34, background: "#351A35", border: "1px solid #6D2A4A" }}
+        >
+          <Trash2 size={15} color="#FF8AAE" />
+        </button>
       </div>
     </div>
   );
@@ -648,6 +706,71 @@ function FetchError({ message }: { message: string }) {
       style={{ background: "#1A1050", border: "1px solid #EF4444" }}
     >
       <span className="text-red-400 text-[13px]">{message}</span>
+    </div>
+  );
+}
+
+// ── Delete child modal ──────────────────────────────────────────────────────
+
+function DeleteChildModal({
+  child, onCancel, onConfirm, deleting, error,
+}: {
+  child: Child; onCancel: () => void; onConfirm: () => void;
+  deleting: boolean; error: string | null;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ background: "rgba(0,0,0,0.62)" }}
+      onClick={(e) => { if (e.target === e.currentTarget && !deleting) onCancel(); }}
+    >
+      <div
+        className="flex flex-col rounded-[24px] p-5 lg:p-6"
+        style={{
+          background: "#1A1050",
+          border: "1px solid #2D1B6B",
+          gap: 18,
+          width: "min(430px, calc(100vw - 48px))",
+        }}
+      >
+        {/* Icon + title + text */}
+        <div className="flex flex-col items-center gap-3">
+          <div
+            className="flex items-center justify-center rounded-full flex-shrink-0"
+            style={{ width: 48, height: 48, background: "#351A35", border: "1px solid #6D2A4A" }}
+          >
+            <Trash2 size={20} color="#FF8AAE" />
+          </div>
+          <span className="text-white font-bold text-center" style={{ fontSize: 20 }}>
+            Удалить профиль {child.name}?
+          </span>
+          <span className="text-center leading-snug" style={{ fontSize: 13, color: "#9B8EC4" }}>
+            Все данные ребёнка и связанные истории будут безвозвратно удалены.
+          </span>
+          {error && (
+            <span className="text-center" style={{ fontSize: 12, color: "#FF4D7D" }}>{error}</span>
+          )}
+        </div>
+        {/* Buttons: mobile col-reverse (delete on top), desktop row (cancel left, delete right) */}
+        <div className="flex flex-col-reverse lg:flex-row gap-[10px] lg:gap-3">
+          <button
+            onClick={onCancel}
+            disabled={deleting}
+            className="flex items-center justify-center rounded-[18px] font-semibold w-full"
+            style={{ height: 44, fontSize: 14, background: "#2D1B6B", color: "#C4B5FD" }}
+          >
+            Отмена
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={deleting}
+            className="flex items-center justify-center rounded-[18px] text-white font-bold w-full disabled:opacity-60"
+            style={{ height: 46, fontSize: 14, background: "#FF4D7D" }}
+          >
+            {deleting ? "Удаление..." : "Удалить"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

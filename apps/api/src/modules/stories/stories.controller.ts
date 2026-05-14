@@ -21,6 +21,7 @@ export const generateStory = async (req: FastifyRequest, reply: FastifyReply) =>
 
   const child = await req.server.prisma.child.findUnique({
     where: { id: data.childId },
+    include: { _count: { select: { faceEmbeddings: true } } },
   });
 
   if (!child || child.userId !== user.userId) {
@@ -89,7 +90,7 @@ export const generateStory = async (req: FastifyRequest, reply: FastifyReply) =>
     appearanceFeatures: child.appearanceFeatures,
     visibleFeatures: child.visibleFeatures,
     specialNotes,
-    embeddingVector: child.embeddingVector,
+    hasEmbedding: child._count.faceEmbeddings > 0,
   });
 
   const job = await storyGenerationQueue.add('generate-text', {

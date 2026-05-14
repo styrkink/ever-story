@@ -18,6 +18,7 @@ const envSchema = z.object({
   EMAIL_VERIFY_SECRET: z.string().min(32),
   PASSWORD_RESET_SECRET: z.string().min(32),
   APP_URL: z.string().url(),
+  FACE_SERVICE_URL: z.string().url().optional(),
   EMAIL_FROM: z.string().default('EverStory <hello@everstory.app>'),
   EMAIL_REPLY_TO: z.string().email().default('support@everstory.app'),
   EMAIL_UNSUBSCRIBE_URL: z.string().url().default('https://everstory.app/unsubscribe'),

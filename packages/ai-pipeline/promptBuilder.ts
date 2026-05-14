@@ -43,7 +43,7 @@ export function buildCharacterContext(child: {
   appearanceFeatures: string[];
   visibleFeatures: string[];
   specialNotes: string | null;
-  embeddingVector: string | null;
+  hasEmbedding: boolean;
 }): CharacterContext {
   return {
     name: child.nickname || child.name,
@@ -64,6 +64,6 @@ export function buildCharacterContext(child: {
       visibleFeatures: child.visibleFeatures,
     },
     restrictions: child.specialNotes || null,
-    hasEmbedding: !!child.embeddingVector,
+    hasEmbedding: child.hasEmbedding,
   };
 }

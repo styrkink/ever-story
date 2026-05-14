@@ -101,6 +101,14 @@ export async function patchChild(id: string, step: 1 | 2 | 3, data: Record<strin
   return apiFetch<Child>(`/api/children/${id}?step=${step}`, { method: "PATCH", body: data });
 }
 
+export async function updateChild(id: string, data: Partial<Child>): Promise<Child> {
+  return apiFetch<Child>(`/api/children/${id}`, { method: "PUT", body: data });
+}
+
+export async function deleteChild(id: string): Promise<void> {
+  return apiFetch<void>(`/api/children/${id}`, { method: "DELETE" });
+}
+
 export async function uploadChildPhoto(id: string, file: File): Promise<{ success: boolean; qualityScore: number }> {
   const token = getAccessToken();
   if (!token) throw new AuthError("No token");

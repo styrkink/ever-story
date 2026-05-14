@@ -22,16 +22,17 @@ const TIER_LIMITS: Record<string, number> = {
 
 /** Decrypt specialNotesEncrypted and expose as specialNotes in the API response. */
 function toApiResponse(child: Record<string, unknown>) {
-  const { specialNotesEncrypted, embeddingVector, photoEmbedding, ...rest } = child as {
+  const { specialNotesEncrypted, _count, ...rest } = child as {
     specialNotesEncrypted: string | null;
-    embeddingVector: string | null;
-    photoEmbedding: unknown;
+    _count?: { faceEmbeddings: number };
     [key: string]: unknown;
   };
+  const photoCount = _count?.faceEmbeddings ?? 0;
   return {
     ...rest,
     specialNotes: specialNotesEncrypted ? decrypt(specialNotesEncrypted) : null,
-    hasEmbedding: !!embeddingVector,
+    photoCount,
+    hasEmbedding: photoCount > 0,
   };
 }
 
@@ -44,6 +45,7 @@ export const childrenController: FastifyPluginAsync = async (server: FastifyInst
     const children = await server.prisma.child.findMany({
       where: { userId: request.user.userId },
       orderBy: { createdAt: 'asc' },
+      include: { _count: { select: { faceEmbeddings: true } } },
     });
     return reply.status(200).send(children.map(toApiResponse));
   });
@@ -171,14 +173,8 @@ export const childrenController: FastifyPluginAsync = async (server: FastifyInst
       }
     }
 
-    // Clear embedding synchronously before cascade delete (COPPA compliance)
-    await server.prisma.child.update({
-      where: { id },
-      data: { embeddingVector: null },
-    });
-    await server.prisma.$executeRaw`
-      UPDATE "children" SET "photoEmbedding" = NULL WHERE id = ${id}
-    `;
+    // Synchronously erase all face embeddings (COPPA compliance — biometric data first)
+    await server.prisma.childFaceEmbedding.deleteMany({ where: { childId: id } });
 
     // Cascade delete — removes stories, pages, generationJobs via Prisma schema
     await server.prisma.child.delete({ where: { id } });
@@ -255,15 +251,19 @@ export const childrenController: FastifyPluginAsync = async (server: FastifyInst
 
     const encryptedEmbedding = encrypt(JSON.stringify(faceResult.embedding));
 
-    await server.prisma.child.update({
-      where: { id },
-      data: { embeddingVector: encryptedEmbedding },
+    // Append a new face embedding row (multi-photo storage)
+    const faceEmbedding = await server.prisma.childFaceEmbedding.create({
+      data: {
+        childId: id,
+        embeddingVector: encryptedEmbedding,
+        qualityScore: faceResult.qualityScore,
+      },
     });
 
-    // Store float array in pgvector column
+    // Store float array in pgvector column on the new row
     const vectorStr = `[${faceResult.embedding.join(',')}]`;
     await server.prisma.$executeRaw`
-      UPDATE "children" SET "photoEmbedding" = ${vectorStr}::vector(512) WHERE id = ${id}
+      UPDATE "child_face_embeddings" SET "photoEmbedding" = ${vectorStr}::vector(512) WHERE id = ${faceEmbedding.id}
     `;
 
     await server.prisma.auditLog.create({
@@ -271,11 +271,18 @@ export const childrenController: FastifyPluginAsync = async (server: FastifyInst
         userId: request.user.userId,
         action: 'PHOTO_UPLOAD',
         entityId: id,
-        metadata: { qualityScore: faceResult.qualityScore },
+        metadata: {
+          qualityScore: faceResult.qualityScore,
+          embeddingId: faceEmbedding.id,
+        },
       },
     });
 
-    return reply.status(200).send({ success: true, qualityScore: faceResult.qualityScore });
+    return reply.status(200).send({
+      success: true,
+      qualityScore: faceResult.qualityScore,
+      embeddingId: faceEmbedding.id,
+    });
   });
 
   // ── DELETE /api/children/:id/photo ────────────────────────────────────────
@@ -287,23 +294,23 @@ export const childrenController: FastifyPluginAsync = async (server: FastifyInst
     });
     if (!existing) throw new AppError('Child profile not found or unauthorized', 404);
 
-    // Synchronous embedding deletion (COPPA compliance)
-    await server.prisma.child.update({
-      where: { id },
-      data: { embeddingVector: null },
+    // Erase ALL stored face embeddings for this child (COPPA compliance)
+    const result = await server.prisma.childFaceEmbedding.deleteMany({
+      where: { childId: id },
     });
-    await server.prisma.$executeRaw`
-      UPDATE "children" SET "photoEmbedding" = NULL WHERE id = ${id}
-    `;
 
     await server.prisma.auditLog.create({
       data: {
         userId: request.user.userId,
         action: 'PHOTO_DELETE',
         entityId: id,
+        metadata: { deletedCount: result.count },
       },
     });
 
-    return reply.status(200).send({ message: 'Photo embedding deleted successfully' });
+    return reply.status(200).send({
+      message: 'Photo embeddings deleted successfully',
+      deletedCount: result.count,
+    });
   });
 };
